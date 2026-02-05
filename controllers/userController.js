@@ -111,12 +111,10 @@ const changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Current and new password are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Current and new password are required",
+      });
     }
 
     const user = await User.findById(req.user._id).select("+password");
@@ -292,8 +290,16 @@ const dailyCheckin = async (req, res) => {
     }
 
     // Calculate bonus based on streak (cap at day 7)
-    const dayBonus = [5, 10, 15, 20, 30, 40, 50]; // coins per day
-    const bonusCoins = dayBonus[Math.min(streak - 1, 6)];
+    // Get bonuses from settings (admin configured)
+    const bonuses = settings.dailyCheckinBonuses || [5, 10, 15, 20, 30, 40, 50];
+
+    // Reset cycle after 7 days
+    if (streak > bonuses.length) {
+      streak = 1;
+    }
+
+    // Calculate bonus based on streak
+    const bonusCoins = Number(Number(bonuses[streak - 1] || 0).toFixed(4));
 
     // Update user
     user.miningStats.totalCoins += bonusCoins;
@@ -304,7 +310,7 @@ const dailyCheckin = async (req, res) => {
     // Update wallet if exists
     let wallet = await Wallet.findOne({ user: req.user._id });
     if (wallet) {
-      await wallet.addCoins(bonusCoins, "bonus");
+      await wallet.addCoins(bonusCoins, "mining");
     }
 
     // Create transaction record
@@ -332,7 +338,9 @@ const dailyCheckin = async (req, res) => {
       bonus: {
         coins: bonusCoins,
         day: streak,
-        nextDayBonus: dayBonus[Math.min(streak, 6)],
+        nextDayBonus: Number(
+          Number(bonuses[streak % bonuses.length] || 0).toFixed(4),
+        ),
       },
       streak,
       totalCoins: user.miningStats.totalCoins,
@@ -350,6 +358,7 @@ const dailyCheckin = async (req, res) => {
 const getCheckinStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    const settings = await Settings.getSettings(); // ✅ ADD THIS
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -358,7 +367,8 @@ const getCheckinStatus = async (req, res) => {
       user.lastCheckinDate && new Date(user.lastCheckinDate) >= today;
 
     // Day bonus array
-    const dayBonus = [5, 10, 15, 20, 30, 40, 50];
+    const bonuses = settings.dailyCheckinBonuses || [5, 10, 15, 20, 30, 40, 50];
+
     const currentStreak = user.checkinStreak || 0;
 
     res.status(200).json({
@@ -366,16 +376,18 @@ const getCheckinStatus = async (req, res) => {
       checkin: {
         hasCheckedIn,
         streak: currentStreak,
-        nextBonus: hasCheckedIn
-          ? dayBonus[Math.min(currentStreak, 6)]
-          : dayBonus[Math.min(currentStreak, 6)],
+        nextBonus: Number(
+          Number(bonuses[currentStreak % bonuses.length] || 0).toFixed(4),
+        ),
+
         lastCheckin: user.lastCheckinDate,
         nextAvailable: hasCheckedIn
           ? new Date(today.getTime() + 24 * 60 * 60 * 1000)
           : new Date(),
-        weeklyProgress: Array.from({ length: 7 }, (_, i) => ({
+        weeklyProgress: Array.from({ length: bonuses.length }, (_, i) => ({
           day: i + 1,
-          coins: dayBonus[i],
+          coins: Number(Number(bonuses[i] || 0).toFixed(4)),
+
           completed: i < currentStreak,
           current: i === currentStreak,
         })),
