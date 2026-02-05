@@ -1,0 +1,1073 @@
+{
+  "info": {
+    "_postman_id": "mining-app-complete-api-collection",
+    "name": "🚀 Mining App - Complete API Collection",
+    "description": "Comprehensive API documentation for Mining App Backend.\n\n## Authentication\n- User APIs use Bearer token from user login\n- Admin APIs use Bearer token from admin login\n\n## Base URL\n- Development: http://localhost:5000\n- Production: Your deployed URL\n\n## Test Credentials\n- **User:** testuser@test.com / test123456\n- **Admin:** admin@mining.com / admin123456\n\n## How to Use\n1. Start with Auth > Login to get token\n2. Token will auto-save to variables\n3. All subsequent requests will use this token",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 User Auth",
+      "item": [
+        {
+          "name": "Send OTP (Signup)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"newuser@example.com\", \"purpose\": \"signup\"}"},
+            "url": {"raw": "{{baseUrl}}/api/auth/send-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "send-otp"]}
+          }
+        },
+        {
+          "name": "Send OTP (Login)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"testuser@test.com\", \"purpose\": \"login\"}"},
+            "url": {"raw": "{{baseUrl}}/api/auth/send-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "send-otp"]}
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"testuser@test.com\", \"otp\": \"123456\"}"},
+            "url": {"raw": "{{baseUrl}}/api/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "verify-otp"]}
+          }
+        },
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"name\": \"New User\", \"email\": \"newuser@test.com\", \"password\": \"password123\", \"referralCode\": \"TESTUSER\"}"},
+            "url": {"raw": "{{baseUrl}}/api/auth/signup", "host": ["{{baseUrl}}"], "path": ["api", "auth", "signup"]}
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('userToken', jsonData.token);",
+                  "    pm.collectionVariables.set('userId', jsonData.user._id);",
+                  "    console.log('User token saved!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"testuser@test.com\", \"password\": \"test123456\"}"},
+            "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]}
+          }
+        },
+        {
+          "name": "Google Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('userToken', jsonData.token);",
+                  "    pm.collectionVariables.set('userId', jsonData.user._id);",
+                  "    console.log('User token saved!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"idToken\": \"GOOGLE_ID_TOKEN_FROM_CLIENT\", \"referralCode\": \"OPTIONAL_REFERRAL\"}"},
+            "url": {"raw": "{{baseUrl}}/api/auth/google", "host": ["{{baseUrl}}"], "path": ["api", "auth", "google"]}
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me"]}
+          }
+        },
+        {
+          "name": "Send OTP (Reset Password)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"testuser@test.com\", \"purpose\": \"reset-password\"}"},
+            "url": {"raw": "{{baseUrl}}/api/auth/send-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "send-otp"]}
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"testuser@test.com\", \"otp\": \"123456\", \"newPassword\": \"newpassword123\"}"},
+            "url": {"raw": "{{baseUrl}}/api/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api", "auth", "reset-password"]}
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 User Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/users/profile", "host": ["{{baseUrl}}"], "path": ["api", "users", "profile"]}
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"name\": \"Updated Name\", \"phone\": \"9876543210\"}"},
+            "url": {"raw": "{{baseUrl}}/api/users/profile", "host": ["{{baseUrl}}"], "path": ["api", "users", "profile"]}
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "avatar", "type": "file", "description": "Image file"}]},
+            "url": {"raw": "{{baseUrl}}/api/users/avatar", "host": ["{{baseUrl}}"], "path": ["api", "users", "avatar"]}
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"currentPassword\": \"test123456\", \"newPassword\": \"newpassword123\"}"},
+            "url": {"raw": "{{baseUrl}}/api/users/password", "host": ["{{baseUrl}}"], "path": ["api", "users", "password"]}
+          }
+        },
+        {
+          "name": "Get Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/users/stats", "host": ["{{baseUrl}}"], "path": ["api", "users", "stats"]}
+          }
+        },
+        {
+          "name": "Get Activity",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/users/activity?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api", "users", "activity"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "20"}]}
+          }
+        },
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/users/dashboard", "host": ["{{baseUrl}}"], "path": ["api", "users", "dashboard"]}
+          }
+        },
+        {
+          "name": "Daily Check-in",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/users/daily-checkin", "host": ["{{baseUrl}}"], "path": ["api", "users", "daily-checkin"]}
+          }
+        },
+        {
+          "name": "Redeem Promo Code",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"code\": \"WELCOME100\"}"},
+            "url": {"raw": "{{baseUrl}}/api/users/redeem-code", "host": ["{{baseUrl}}"], "path": ["api", "users", "redeem-code"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 Wallet",
+      "item": [
+        {
+          "name": "Get Wallet",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/wallet", "host": ["{{baseUrl}}"], "path": ["api", "wallet"]}
+          }
+        },
+        {
+          "name": "Get Wallet Summary",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/wallet/summary", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "summary"]}
+          }
+        },
+        {
+          "name": "Sync Wallet",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/wallet/sync", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "sync"]}
+          }
+        },
+        {
+          "name": "Update Withdrawal Address",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"upiId\": \"user@paytm\", \"accountName\": \"Test User\"}"},
+            "url": {"raw": "{{baseUrl}}/api/wallet/withdrawal-address", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "withdrawal-address"]}
+          }
+        },
+        {
+          "name": "Request Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"amount\": 100, \"method\": \"UPI\", \"upiId\": \"user@paytm\"}"},
+            "url": {"raw": "{{baseUrl}}/api/wallet/withdraw", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "withdraw"]}
+          }
+        },
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/wallet/transactions?page=1&limit=20&type=all", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "transactions"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "20"}, {"key": "type", "value": "all"}]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "⛏️ Mining",
+      "item": [
+        {
+          "name": "Get Mining Status",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/mining/status", "host": ["{{baseUrl}}"], "path": ["api", "mining", "status"]}
+          }
+        },
+        {
+          "name": "Start Mining",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/mining/start", "host": ["{{baseUrl}}"], "path": ["api", "mining", "start"]}
+          }
+        },
+        {
+          "name": "Claim Mining Rewards",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/mining/claim", "host": ["{{baseUrl}}"], "path": ["api", "mining", "claim"]}
+          }
+        },
+        {
+          "name": "Cancel Mining",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/mining/cancel", "host": ["{{baseUrl}}"], "path": ["api", "mining", "cancel"]}
+          }
+        },
+        {
+          "name": "Boost Mining",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/mining/boost", "host": ["{{baseUrl}}"], "path": ["api", "mining", "boost"]}
+          }
+        },
+        {
+          "name": "Get Mining History",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/mining/history?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api", "mining", "history"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "20"}]}
+          }
+        },
+        {
+          "name": "Get Mining Rewards",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/mining/rewards", "host": ["{{baseUrl}}"], "path": ["api", "mining", "rewards"]}
+          }
+        },
+        {
+          "name": "Get Mining Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/mining/leaderboard", "host": ["{{baseUrl}}"], "path": ["api", "mining", "leaderboard"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "🪙 Coin Packages",
+      "item": [
+        {
+          "name": "Get All Packages",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/coins/packages", "host": ["{{baseUrl}}"], "path": ["api", "coins", "packages"]}
+          }
+        },
+        {
+          "name": "Purchase Package",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"packageId\": \"package_id_here\", \"paymentMethod\": \"UPI\"}"},
+            "url": {"raw": "{{baseUrl}}/api/coins/purchase", "host": ["{{baseUrl}}"], "path": ["api", "coins", "purchase"]}
+          }
+        },
+        {
+          "name": "Upload Payment Proof",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "proof", "type": "file"}, {"key": "purchaseId", "value": "purchase_id_here", "type": "text"}, {"key": "utrNumber", "value": "UTR123456789", "type": "text"}]},
+            "url": {"raw": "{{baseUrl}}/api/coins/upload-proof", "host": ["{{baseUrl}}"], "path": ["api", "coins", "upload-proof"]}
+          }
+        },
+        {
+          "name": "Get My Purchases",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/coins/purchases", "host": ["{{baseUrl}}"], "path": ["api", "coins", "purchases"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "📄 KYC",
+      "item": [
+        {
+          "name": "Get KYC Status",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/kyc/status", "host": ["{{baseUrl}}"], "path": ["api", "kyc", "status"]}
+          }
+        },
+        {
+          "name": "Submit KYC",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "documentType", "value": "aadhaar", "type": "text"}, {"key": "documentNumber", "value": "123456789012", "type": "text"}, {"key": "documentFront", "type": "file"}, {"key": "documentBack", "type": "file"}, {"key": "selfie", "type": "file"}]},
+            "url": {"raw": "{{baseUrl}}/api/kyc/submit", "host": ["{{baseUrl}}"], "path": ["api", "kyc", "submit"]}
+          }
+        },
+        {
+          "name": "Get KYC Submission",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/kyc/submission", "host": ["{{baseUrl}}"], "path": ["api", "kyc", "submission"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/notifications?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api", "notifications"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "20"}]}
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/notifications/unread-count", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "unread-count"]}
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/notifications/:notificationId/read", "host": ["{{baseUrl}}"], "path": ["api", "notifications", ":notificationId", "read"], "variable": [{"key": "notificationId", "value": "notification_id"}]}
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "read-all"]}
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/notifications/:notificationId", "host": ["{{baseUrl}}"], "path": ["api", "notifications", ":notificationId"], "variable": [{"key": "notificationId", "value": "notification_id"}]}
+          }
+        },
+        {
+          "name": "Update FCM Token",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"fcmToken\": \"your_fcm_token_here\"}"},
+            "url": {"raw": "{{baseUrl}}/api/notifications/fcm-token", "host": ["{{baseUrl}}"], "path": ["api", "notifications", "fcm-token"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Referrals",
+      "item": [
+        {
+          "name": "Validate Referral Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{baseUrl}}/api/referrals/validate/TESTUSER", "host": ["{{baseUrl}}"], "path": ["api", "referrals", "validate", "TESTUSER"]}
+          }
+        },
+        {
+          "name": "Get My Referrals",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/referrals?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api", "referrals"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "20"}]}
+          }
+        },
+        {
+          "name": "Get Share Info",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/referrals/share", "host": ["{{baseUrl}}"], "path": ["api", "referrals", "share"]}
+          }
+        },
+        {
+          "name": "Get Referral Earnings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/referrals/earnings", "host": ["{{baseUrl}}"], "path": ["api", "referrals", "earnings"]}
+          }
+        },
+        {
+          "name": "Ping (Check Online)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{userToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/referrals/ping", "host": ["{{baseUrl}}"], "path": ["api", "referrals", "ping"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Settings",
+      "item": [
+        {
+          "name": "Get App Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{baseUrl}}/api/settings", "host": ["{{baseUrl}}"], "path": ["api", "settings"]}
+          }
+        },
+        {
+          "name": "Get Social Links",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{baseUrl}}/api/settings/social", "host": ["{{baseUrl}}"], "path": ["api", "settings", "social"]}
+          }
+        },
+        {
+          "name": "Check Maintenance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{baseUrl}}/api/settings/maintenance", "host": ["{{baseUrl}}"], "path": ["api", "settings", "maintenance"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔒 Admin Auth",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('adminToken', jsonData.token);",
+                  "    console.log('Admin token saved!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"admin@mining.com\", \"password\": \"admin123456\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "admin", "auth", "login"]}
+          }
+        },
+        {
+          "name": "Get Admin Profile",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/auth/me", "host": ["{{baseUrl}}"], "path": ["api", "admin", "auth", "me"]}
+          }
+        },
+        {
+          "name": "Get All Admins",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/auth/admins", "host": ["{{baseUrl}}"], "path": ["api", "admin", "auth", "admins"]}
+          }
+        },
+        {
+          "name": "Create Admin",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"name\": \"New Admin\", \"email\": \"newadmin@mining.com\", \"password\": \"admin123\", \"role\": \"admin\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/auth/admins", "host": ["{{baseUrl}}"], "path": ["api", "admin", "auth", "admins"]}
+          }
+        },
+        {
+          "name": "Admin Logout",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "admin", "auth", "logout"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Admin Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/dashboard/stats", "host": ["{{baseUrl}}"], "path": ["api", "admin", "dashboard", "stats"]}
+          }
+        },
+        {
+          "name": "Get System Health",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/dashboard/health", "host": ["{{baseUrl}}"], "path": ["api", "admin", "dashboard", "health"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Admin - Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/users?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "10"}]}
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/users/:userId", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":userId"], "variable": [{"key": "userId", "value": "{{userId}}"}]}
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"name\": \"Updated Name\", \"isVerified\": true}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/users/:userId", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":userId"], "variable": [{"key": "userId", "value": "user_id_here"}]}
+          }
+        },
+        {
+          "name": "Ban User",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"reason\": \"Violation of terms\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/users/:userId/ban", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":userId", "ban"], "variable": [{"key": "userId", "value": "user_id_here"}]}
+          }
+        },
+        {
+          "name": "Unban User",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/users/:userId/unban", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":userId", "unban"], "variable": [{"key": "userId", "value": "user_id_here"}]}
+          }
+        },
+        {
+          "name": "Adjust User Coins",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"amount\": 100, \"type\": \"add\", \"reason\": \"Bonus reward\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/users/:userId/coins", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":userId", "coins"], "variable": [{"key": "userId", "value": "user_id_here"}]}
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/users/:userId", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users", ":userId"], "variable": [{"key": "userId", "value": "user_id_here"}]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "📄 Admin - KYC",
+      "item": [
+        {
+          "name": "Get All KYC",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/kyc?page=1&limit=10&status=all", "host": ["{{baseUrl}}"], "path": ["api", "admin", "kyc"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "10"}, {"key": "status", "value": "all"}]}
+          }
+        },
+        {
+          "name": "Get KYC Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/kyc/stats", "host": ["{{baseUrl}}"], "path": ["api", "admin", "kyc", "stats"]}
+          }
+        },
+        {
+          "name": "Approve KYC",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"note\": \"Verified\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/kyc/:kycId/approve", "host": ["{{baseUrl}}"], "path": ["api", "admin", "kyc", ":kycId", "approve"], "variable": [{"key": "kycId", "value": "kyc_id"}]}
+          }
+        },
+        {
+          "name": "Reject KYC",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"reason\": \"Documents unclear\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/kyc/:kycId/reject", "host": ["{{baseUrl}}"], "path": ["api", "admin", "kyc", ":kycId", "reject"], "variable": [{"key": "kycId", "value": "kyc_id"}]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "⛏️ Admin - Mining",
+      "item": [
+        {
+          "name": "Get Mining Sessions",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/mining/sessions?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "admin", "mining", "sessions"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "10"}]}
+          }
+        },
+        {
+          "name": "Get Mining Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/mining/stats", "host": ["{{baseUrl}}"], "path": ["api", "admin", "mining", "stats"]}
+          }
+        },
+        {
+          "name": "Get Active Miners",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/mining/active", "host": ["{{baseUrl}}"], "path": ["api", "admin", "mining", "active"]}
+          }
+        },
+        {
+          "name": "Get Mining Settings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/mining/settings", "host": ["{{baseUrl}}"], "path": ["api", "admin", "mining", "settings"]}
+          }
+        },
+        {
+          "name": "Update Mining Settings",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"miningRate\": 0.30, \"miningDuration\": 24}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/mining/settings", "host": ["{{baseUrl}}"], "path": ["api", "admin", "mining", "settings"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Admin - Transactions",
+      "item": [
+        {
+          "name": "Get All Transactions",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/transactions?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "admin", "transactions"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "10"}]}
+          }
+        },
+        {
+          "name": "Get Transaction Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/transactions/stats", "host": ["{{baseUrl}}"], "path": ["api", "admin", "transactions", "stats"]}
+          }
+        },
+        {
+          "name": "Approve Withdrawal",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"note\": \"Payment sent\", \"transactionRef\": \"UTR123\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/transactions/:transactionId/approve", "host": ["{{baseUrl}}"], "path": ["api", "admin", "transactions", ":transactionId", "approve"], "variable": [{"key": "transactionId", "value": "txn_id"}]}
+          }
+        },
+        {
+          "name": "Reject Withdrawal",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"reason\": \"Invalid UPI\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/transactions/:transactionId/reject", "host": ["{{baseUrl}}"], "path": ["api", "admin", "transactions", ":transactionId", "reject"], "variable": [{"key": "transactionId", "value": "txn_id"}]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 Admin - Payments",
+      "item": [
+        {
+          "name": "Get All Payments",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/payments?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "admin", "payments"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "10"}]}
+          }
+        },
+        {
+          "name": "Get Payment Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/payments/stats", "host": ["{{baseUrl}}"], "path": ["api", "admin", "payments", "stats"]}
+          }
+        },
+        {
+          "name": "Approve Payment",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"note\": \"Verified\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/payments/:paymentId/approve", "host": ["{{baseUrl}}"], "path": ["api", "admin", "payments", ":paymentId", "approve"], "variable": [{"key": "paymentId", "value": "payment_id"}]}
+          }
+        },
+        {
+          "name": "Reject Payment",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"reason\": \"UTR not found\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/payments/:paymentId/reject", "host": ["{{baseUrl}}"], "path": ["api", "admin", "payments", ":paymentId", "reject"], "variable": [{"key": "paymentId", "value": "payment_id"}]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "🪙 Admin - Coins",
+      "item": [
+        {
+          "name": "Get All Packages",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/coins", "host": ["{{baseUrl}}"], "path": ["api", "admin", "coins"]}
+          }
+        },
+        {
+          "name": "Create Package",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"name\": \"Mega Pack\", \"coins\": 5000, \"price\": 999, \"discount\": 33, \"isActive\": true}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/coins", "host": ["{{baseUrl}}"], "path": ["api", "admin", "coins"]}
+          }
+        },
+        {
+          "name": "Update Package",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"name\": \"Ultra Pack\", \"coins\": 6000}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/coins/:packageId", "host": ["{{baseUrl}}"], "path": ["api", "admin", "coins", ":packageId"], "variable": [{"key": "packageId", "value": "pkg_id"}]}
+          }
+        },
+        {
+          "name": "Delete Package",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/coins/:packageId", "host": ["{{baseUrl}}"], "path": ["api", "admin", "coins", ":packageId"], "variable": [{"key": "packageId", "value": "pkg_id"}]}
+          }
+        },
+        {
+          "name": "Toggle Package",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/coins/:packageId/toggle", "host": ["{{baseUrl}}"], "path": ["api", "admin", "coins", ":packageId", "toggle"], "variable": [{"key": "packageId", "value": "pkg_id"}]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "🖼️ Admin - Banners",
+      "item": [
+        {
+          "name": "Get All Banners",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/banners", "host": ["{{baseUrl}}"], "path": ["api", "admin", "banners"]}
+          }
+        },
+        {
+          "name": "Create Banner",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "image", "type": "file"}, {"key": "title", "value": "Welcome", "type": "text"}, {"key": "link", "value": "/offers", "type": "text"}, {"key": "isActive", "value": "true", "type": "text"}]},
+            "url": {"raw": "{{baseUrl}}/api/admin/banners", "host": ["{{baseUrl}}"], "path": ["api", "admin", "banners"]}
+          }
+        },
+        {
+          "name": "Update Banner",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "title", "value": "Updated", "type": "text"}]},
+            "url": {"raw": "{{baseUrl}}/api/admin/banners/:bannerId", "host": ["{{baseUrl}}"], "path": ["api", "admin", "banners", ":bannerId"], "variable": [{"key": "bannerId", "value": "banner_id"}]}
+          }
+        },
+        {
+          "name": "Delete Banner",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/banners/:bannerId", "host": ["{{baseUrl}}"], "path": ["api", "admin", "banners", ":bannerId"], "variable": [{"key": "bannerId", "value": "banner_id"}]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "👥 Admin - Referrals",
+      "item": [
+        {
+          "name": "Get All Referrals",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/referrals?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "admin", "referrals"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "10"}]}
+          }
+        },
+        {
+          "name": "Get Referral Stats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/referrals/stats", "host": ["{{baseUrl}}"], "path": ["api", "admin", "referrals", "stats"]}
+          }
+        },
+        {
+          "name": "Get Referral Settings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/referrals/settings", "host": ["{{baseUrl}}"], "path": ["api", "admin", "referrals", "settings"]}
+          }
+        },
+        {
+          "name": "Update Referral Settings",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"referrerBonus\": 100, \"refereeBonus\": 50}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/referrals/settings", "host": ["{{baseUrl}}"], "path": ["api", "admin", "referrals", "settings"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Admin - Settings",
+      "item": [
+        {
+          "name": "Get All Settings",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/settings", "host": ["{{baseUrl}}"], "path": ["api", "admin", "settings"]}
+          }
+        },
+        {
+          "name": "Update App Settings",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"appName\": \"Mining Pro\", \"signupBonus\": 100}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/settings/app", "host": ["{{baseUrl}}"], "path": ["api", "admin", "settings", "app"]}
+          }
+        },
+        {
+          "name": "Update Social Links",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"telegram\": \"https://t.me/mining\", \"twitter\": \"https://twitter.com/mining\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/settings/social", "host": ["{{baseUrl}}"], "path": ["api", "admin", "settings", "social"]}
+          }
+        },
+        {
+          "name": "Update Withdrawal Settings",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"minWithdrawal\": 100, \"maxWithdrawal\": 10000}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/settings/withdrawal", "host": ["{{baseUrl}}"], "path": ["api", "admin", "settings", "withdrawal"]}
+          }
+        },
+        {
+          "name": "Toggle Maintenance",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"isMaintenanceMode\": false}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/settings/maintenance", "host": ["{{baseUrl}}"], "path": ["api", "admin", "settings", "maintenance"]}
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔔 Admin - Notifications",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/notifications?page=1&limit=10", "host": ["{{baseUrl}}"], "path": ["api", "admin", "notifications"], "query": [{"key": "page", "value": "1"}, {"key": "limit", "value": "10"}]}
+          }
+        },
+        {
+          "name": "Send to User",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"userId\": \"user_id\", \"title\": \"Hello!\", \"message\": \"Your reward is ready\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/notifications", "host": ["{{baseUrl}}"], "path": ["api", "admin", "notifications"]}
+          }
+        },
+        {
+          "name": "Send Bulk",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"title\": \"Announcement\", \"message\": \"New feature released!\", \"target\": \"all\"}"},
+            "url": {"raw": "{{baseUrl}}/api/admin/notifications/bulk", "host": ["{{baseUrl}}"], "path": ["api", "admin", "notifications", "bulk"]}
+          }
+        }
+      ]
+    }
+  ]
+}

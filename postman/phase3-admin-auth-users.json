@@ -1,0 +1,535 @@
+{
+  "admin_auth": {
+    "name": "🔐 Admin Authentication",
+    "description": "Admin authentication endpoints",
+    "item": [
+      {
+        "name": "Admin Login",
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "exec": [
+                "var jsonData = pm.response.json();",
+                "if (jsonData.token) {",
+                "    pm.collectionVariables.set('adminToken', jsonData.token);",
+                "    console.log('Admin token saved!');",
+                "}"
+              ],
+              "type": "text/javascript"
+            }
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"email\": \"admin@mining.com\",\n  \"password\": \"admin123456\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/auth/login",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "auth", "login"]
+          },
+          "description": "Admin login - returns JWT token"
+        },
+        "response": [
+          {
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"success\": true,\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"admin\": {\n    \"id\": \"admin_id\",\n    \"name\": \"Super Admin\",\n    \"email\": \"admin@mining.com\",\n    \"role\": \"super_admin\",\n    \"permissions\": {\n      \"users\": true,\n      \"kyc\": true,\n      \"mining\": true,\n      \"payments\": true\n    }\n  }\n}"
+          }
+        ]
+      },
+      {
+        "name": "Get Current Admin",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/auth/me",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "auth", "me"]
+          },
+          "description": "Get current admin details"
+        }
+      },
+      {
+        "name": "Get All Admins",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/auth/admins",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "auth", "admins"]
+          },
+          "description": "Get list of all admin users"
+        }
+      },
+      {
+        "name": "Create Admin",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"name\": \"New Admin\",\n  \"email\": \"newadmin@mining.com\",\n  \"password\": \"admin123456\",\n  \"role\": \"admin\",\n  \"permissions\": {\n    \"users\": true,\n    \"kyc\": true,\n    \"mining\": false,\n    \"payments\": false,\n    \"referrals\": true,\n    \"notifications\": true,\n    \"settings\": false,\n    \"banners\": true,\n    \"coins\": false\n  }\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/auth/admins",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "auth", "admins"]
+          },
+          "description": "Create a new admin user\n\n**Roles:**\n- super_admin\n- admin\n- moderator"
+        }
+      },
+      {
+        "name": "Update Admin",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"name\": \"Updated Name\",\n  \"permissions\": {\n    \"users\": true,\n    \"kyc\": true\n  }\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/auth/admins/:adminId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "auth", "admins", ":adminId"],
+            "variable": [
+              {
+                "key": "adminId",
+                "value": "admin_id_here"
+              }
+            ]
+          },
+          "description": "Update admin details"
+        }
+      },
+      {
+        "name": "Delete Admin",
+        "request": {
+          "method": "DELETE",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/auth/admins/:adminId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "auth", "admins", ":adminId"],
+            "variable": [
+              {
+                "key": "adminId",
+                "value": "admin_id_here"
+              }
+            ]
+          },
+          "description": "Delete an admin user"
+        }
+      },
+      {
+        "name": "Change Admin Password",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"currentPassword\": \"admin123456\",\n  \"newPassword\": \"newpassword123\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/auth/change-password",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "auth", "change-password"]
+          },
+          "description": "Change admin password"
+        }
+      },
+      {
+        "name": "Admin Logout",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/auth/logout",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "auth", "logout"]
+          },
+          "description": "Admin logout"
+        }
+      }
+    ]
+  },
+  "admin_dashboard": {
+    "name": "📊 Admin Dashboard",
+    "description": "Admin dashboard and analytics endpoints",
+    "item": [
+      {
+        "name": "Get Dashboard Stats",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/dashboard/stats",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "dashboard", "stats"]
+          },
+          "description": "Get dashboard statistics overview"
+        },
+        "response": [
+          {
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"success\": true,\n  \"stats\": {\n    \"users\": {\n      \"total\": 1,\n      \"active\": 1,\n      \"new\": 1,\n      \"suspended\": 0\n    },\n    \"kyc\": {\n      \"pending\": 0,\n      \"approved\": 0,\n      \"rejected\": 0\n    },\n    \"mining\": {\n      \"activeSessions\": 1,\n      \"totalSessions\": 1,\n      \"totalMinedCoins\": 0\n    },\n    \"transactions\": {\n      \"pendingWithdrawals\": 0,\n      \"totalRevenue\": 0\n    },\n    \"referrals\": {\n      \"total\": 0,\n      \"active\": 0\n    }\n  },\n  \"charts\": {\n    \"userGrowth\": [],\n    \"miningActivity\": []\n  },\n  \"recentUsers\": [],\n  \"topMiners\": []\n}"
+          }
+        ]
+      },
+      {
+        "name": "Get System Health",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/dashboard/health",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "dashboard", "health"]
+          },
+          "description": "Get system health status"
+        },
+        "response": [
+          {
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"success\": true,\n  \"health\": {\n    \"status\": \"healthy\",\n    \"database\": \"connected\",\n    \"uptime\": 3600,\n    \"memory\": {\n      \"heapUsed\": 32,\n      \"heapTotal\": 36\n    }\n  }\n}"
+          }
+        ]
+      }
+    ]
+  },
+  "admin_users": {
+    "name": "👥 Admin - User Management",
+    "description": "Admin endpoints for managing users",
+    "item": [
+      {
+        "name": "Get All Users",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/users?page=1&limit=10&status=all&search=",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "users"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              },
+              {
+                "key": "status",
+                "value": "all",
+                "description": "Filter: all, active, suspended"
+              },
+              {
+                "key": "search",
+                "value": "",
+                "description": "Search by name or email"
+              }
+            ]
+          },
+          "description": "Get paginated list of all users"
+        }
+      },
+      {
+        "name": "Get User by ID",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/users/:userId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "users", ":userId"],
+            "variable": [
+              {
+                "key": "userId",
+                "value": "user_id_here"
+              }
+            ]
+          },
+          "description": "Get detailed user info with wallet, mining, transactions"
+        }
+      },
+      {
+        "name": "Update User",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"name\": \"Updated Name\",\n  \"status\": \"active\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/users/:userId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "users", ":userId"],
+            "variable": [
+              {
+                "key": "userId",
+                "value": "user_id_here"
+              }
+            ]
+          },
+          "description": "Update user details"
+        }
+      },
+      {
+        "name": "Ban User",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"reason\": \"Violation of terms of service\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/users/:userId/ban",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "users", ":userId", "ban"],
+            "variable": [
+              {
+                "key": "userId",
+                "value": "user_id_here"
+              }
+            ]
+          },
+          "description": "Ban/suspend a user"
+        }
+      },
+      {
+        "name": "Unban User",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/users/:userId/unban",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "users", ":userId", "unban"],
+            "variable": [
+              {
+                "key": "userId",
+                "value": "user_id_here"
+              }
+            ]
+          },
+          "description": "Unban/reactivate a user"
+        }
+      },
+      {
+        "name": "Adjust User Coins",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"amount\": 100,\n  \"type\": \"add\",\n  \"reason\": \"Promotional bonus\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/users/:userId/coins",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "users", ":userId", "coins"],
+            "variable": [
+              {
+                "key": "userId",
+                "value": "user_id_here"
+              }
+            ]
+          },
+          "description": "Add or deduct coins from user\n\n**Type:**\n- add\n- deduct"
+        }
+      },
+      {
+        "name": "Reset User Password",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"newPassword\": \"newpassword123\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/users/:userId/reset-password",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "users", ":userId", "reset-password"],
+            "variable": [
+              {
+                "key": "userId",
+                "value": "user_id_here"
+              }
+            ]
+          },
+          "description": "Reset user password"
+        }
+      },
+      {
+        "name": "Delete User",
+        "request": {
+          "method": "DELETE",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/users/:userId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "users", ":userId"],
+            "variable": [
+              {
+                "key": "userId",
+                "value": "user_id_here"
+              }
+            ]
+          },
+          "description": "Delete a user permanently"
+        }
+      },
+      {
+        "name": "Export Users",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/users/export",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "users", "export"]
+          },
+          "description": "Export all users data (CSV)"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,955 @@
+{
+  "info": {
+    "name": "Mining App API",
+    "description": "Complete API documentation for Mining App - Admin & User APIs\n\n## Authentication\n- User APIs use Bearer Token from `/api/auth/login`\n- Admin APIs use Bearer Token from `/api/admin/auth/login`\n\n## Base URL\n- Development: `http://localhost:5000`\n- Production: Set in environment variable\n\n## Test Credentials\n- **User**: testuser@test.com / test123456\n- **Admin**: admin@mining.com / admin123456",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "mining-app"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "userToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 User Authentication",
+      "description": "User authentication endpoints - signup, login, OTP verification",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"purpose\": \"signup\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "send-otp"]
+            },
+            "description": "Send OTP to email for signup/login/reset-password\n\n**Purpose values:**\n- `signup` - New user registration\n- `login` - Login with OTP\n- `reset-password` - Password reset"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"OTP sent to user@example.com\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-otp"]
+            },
+            "description": "Verify OTP received via email"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"OTP verified successfully\",\n  \"purpose\": \"signup\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"name\": \"John Doe\",\n  \"password\": \"password123\",\n  \"referralCode\": \"TESTUSER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "signup"]
+            },
+            "description": "Register new user after OTP verification\n\n**Note:** `referralCode` is optional"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Account created successfully\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"_id\": \"user_id\",\n    \"name\": \"John Doe\",\n    \"email\": \"user@example.com\",\n    \"referralCode\": \"JOHNDOE\",\n    \"miningStats\": {\n      \"totalCoins\": 100\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('userToken', jsonData.token);",
+                  "    console.log('User token saved!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@test.com\",\n  \"password\": \"test123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login with email and password OR email and OTP\n\n**Login Options:**\n1. Email + Password\n2. Email + OTP (after send-otp)"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"_id\": \"user_id\",\n    \"name\": \"Test User\",\n    \"email\": \"testuser@test.com\",\n    \"referralCode\": \"TESTUSER\",\n    \"miningStats\": {\n      \"totalCoins\": 105\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login with OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"testuser@test.com\",\n  \"otp\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login using OTP instead of password"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"newPassword\": \"newpassword123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "reset-password"]
+            },
+            "description": "Reset password after OTP verification"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Get currently logged in user details"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"user\": {\n    \"_id\": \"user_id\",\n    \"name\": \"Test User\",\n    \"email\": \"testuser@test.com\",\n    \"referralCode\": \"TESTUSER\",\n    \"miningStats\": {\n      \"totalCoins\": 105,\n      \"level\": 1\n    },\n    \"kycStatus\": \"none\",\n    \"status\": \"active\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Logout user (client should clear token)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 User Profile",
+      "description": "User profile management endpoints",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "profile"]
+            },
+            "description": "Get user profile with ownership progress and app settings"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"user\": {\n    \"name\": \"Test User\",\n    \"email\": \"testuser@test.com\",\n    \"miningStats\": {\n      \"totalCoins\": 105,\n      \"level\": 1\n    }\n  },\n  \"ownershipProgress\": {\n    \"overallProgress\": 0,\n    \"isEligibleForKYC\": false\n  },\n  \"userTier\": {\n    \"tier\": 1,\n    \"name\": \"Tier 1\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"9876543210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "profile"]
+            },
+            "description": "Update user profile information"
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/avatar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "avatar"]
+            },
+            "description": "Upload user avatar image"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"test123456\",\n  \"newPassword\": \"newpassword123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "password"]
+            },
+            "description": "Change user password"
+          }
+        },
+        {
+          "name": "Get User Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "stats"]
+            },
+            "description": "Get user statistics - coins, level, referrals"
+          }
+        },
+        {
+          "name": "Get Activity",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/activity",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "activity"]
+            },
+            "description": "Get user activity with mining rates"
+          }
+        },
+        {
+          "name": "Get Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "dashboard"]
+            },
+            "description": "Get user dashboard overview"
+          }
+        },
+        {
+          "name": "Daily Check-in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/daily-checkin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "daily-checkin"]
+            },
+            "description": "Daily check-in to earn bonus coins\n\n**Bonus Schedule:**\n- Day 1: 5 coins\n- Day 2: 10 coins\n- Day 3: 15 coins\n- Day 4: 20 coins\n- Day 5: 30 coins\n- Day 6: 40 coins\n- Day 7: 50 coins"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Check-in successful! You earned 5 coins.\",\n  \"bonus\": {\n    \"coins\": 5,\n    \"day\": 1,\n    \"nextDayBonus\": 10\n  },\n  \"streak\": 1,\n  \"totalCoins\": 105\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Check-in Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/daily-checkin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "daily-checkin"]
+            },
+            "description": "Get current check-in status and streak"
+          }
+        },
+        {
+          "name": "Redeem Promo Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"WELCOME2024\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/redeem-code",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "redeem-code"]
+            },
+            "description": "Redeem a promotional code for bonus coins"
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"test123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/account",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "account"]
+            },
+            "description": "Delete user account (requires password confirmation)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 Wallet",
+      "description": "User wallet and transaction endpoints",
+      "item": [
+        {
+          "name": "Get Wallet",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet"]
+            },
+            "description": "Get wallet information with balance and withdrawal status"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"wallet\": {\n    \"coinBalance\": 105,\n    \"fiatBalance\": 0,\n    \"lockedCoins\": 0,\n    \"availableCoins\": 105,\n    \"totalEarned\": 0,\n    \"totalWithdrawn\": 0,\n    \"minWithdrawal\": 100,\n    \"coinValue\": 0.01,\n    \"canWithdraw\": {\n      \"canWithdraw\": true\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Wallet Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "summary"]
+            },
+            "description": "Get wallet summary with transaction breakdown"
+          }
+        },
+        {
+          "name": "Sync Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "sync"]
+            },
+            "description": "Sync wallet balance with user's mining stats"
+          }
+        },
+        {
+          "name": "Update Withdrawal Address",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"upiId\": \"user@paytm\",\n  \"bankAccount\": {\n    \"accountNumber\": \"1234567890\",\n    \"ifscCode\": \"SBIN0001234\",\n    \"accountName\": \"John Doe\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/withdrawal-address",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "withdrawal-address"]
+            },
+            "description": "Update UPI ID or bank details for withdrawals"
+          }
+        },
+        {
+          "name": "Request Withdrawal",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 100,\n  \"method\": \"upi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/withdraw",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "withdraw"]
+            },
+            "description": "Request coin withdrawal\n\n**Requirements:**\n- Minimum withdrawal: 100 coins\n- KYC must be approved\n- Withdrawal address must be set"
+          }
+        },
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/transactions?page=1&limit=10&type=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "transactions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "type",
+                  "value": "all",
+                  "description": "Filter: all, mining, referral, purchase, withdrawal, bonus"
+                }
+              ]
+            },
+            "description": "Get paginated transaction history"
+          }
+        },
+        {
+          "name": "Get Transaction by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/transactions/:transactionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "transactions", ":transactionId"],
+              "variable": [
+                {
+                  "key": "transactionId",
+                  "value": "transaction_id_here"
+                }
+              ]
+            },
+            "description": "Get single transaction details"
+          }
+        }
+      ]
+    },
+    {
+      "name": "⛏️ Mining",
+      "description": "Mining operations and status endpoints",
+      "item": [
+        {
+          "name": "Get Mining Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mining/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mining", "status"]
+            },
+            "description": "Get current mining status, session info, and rates"
+          },
+          "response": [
+            {
+              "name": "Idle",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"status\": \"idle\",\n  \"timeRemaining\": null,\n  \"currentSession\": null,\n  \"nextSessionRates\": {\n    \"baseRate\": 0.25,\n    \"totalRate\": 0.25,\n    \"expectedCoins\": 6\n  }\n}"
+            },
+            {
+              "name": "Mining Active",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"status\": \"mining\",\n  \"timeRemaining\": {\n    \"hours\": 23,\n    \"minutes\": 45,\n    \"formatted\": \"23:45:00\"\n  },\n  \"currentSession\": {\n    \"id\": \"session_id\",\n    \"expectedCoins\": 6,\n    \"status\": \"active\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Start Mining",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mining/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mining", "start"]
+            },
+            "description": "Start a new 24-hour mining session"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"message\": \"Mining started successfully\",\n  \"session\": {\n    \"id\": \"session_id\",\n    \"startTime\": \"2026-01-10T15:00:00Z\",\n    \"endTime\": \"2026-01-11T15:00:00Z\",\n    \"expectedCoins\": 6,\n    \"rates\": {\n      \"baseRate\": 0.25,\n      \"totalRate\": 0.25\n    }\n  },\n  \"timeRemaining\": {\n    \"hours\": 23,\n    \"minutes\": 59,\n    \"formatted\": \"23:59:58\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Claim Rewards",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mining/claim",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mining", "claim"]
+            },
+            "description": "Claim mining rewards after session completes"
+          }
+        },
+        {
+          "name": "Cancel Mining",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mining/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mining", "cancel"]
+            },
+            "description": "Cancel current mining session (loses progress)"
+          }
+        },
+        {
+          "name": "Boost Mining",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mining/boost",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mining", "boost"]
+            },
+            "description": "Boost mining rate (costs coins)"
+          }
+        },
+        {
+          "name": "Get Mining History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mining/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mining", "history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get paginated mining session history"
+          }
+        },
+        {
+          "name": "Get Rewards Breakdown",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mining/rewards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mining", "rewards"]
+            },
+            "description": "Get detailed breakdown of mining rewards and rates"
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"breakdown\": {\n    \"baseRate\": 0.25,\n    \"baseEarnings\": 6,\n    \"referral\": {\n      \"activeReferrals\": 0,\n      \"boostPercent\": 0,\n      \"bonusEarnings\": 0\n    },\n    \"level\": {\n      \"currentLevel\": 1,\n      \"boostPercent\": 0\n    },\n    \"total\": {\n      \"rate\": 0.25,\n      \"earnings\": 6,\n      \"cycleDuration\": 24\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Mining Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{userToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/mining/leaderboard?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "mining", "leaderboard"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get mining leaderboard with user rankings"
+          }
+        }
+      ]
+    }
+  ]
+}

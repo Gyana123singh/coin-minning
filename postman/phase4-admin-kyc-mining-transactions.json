@@ -1,0 +1,603 @@
+{
+  "admin_kyc": {
+    "name": "📄 Admin - KYC Management",
+    "description": "Admin endpoints for KYC verification",
+    "item": [
+      {
+        "name": "Get All KYC Requests",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/kyc?page=1&limit=10&status=all",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "kyc"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              },
+              {
+                "key": "status",
+                "value": "all",
+                "description": "Filter: all, pending, approved, rejected"
+              }
+            ]
+          },
+          "description": "Get all KYC submissions"
+        }
+      },
+      {
+        "name": "Get KYC Stats",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/kyc/stats",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "kyc", "stats"]
+          },
+          "description": "Get KYC statistics"
+        }
+      },
+      {
+        "name": "Get KYC by ID",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/kyc/:kycId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "kyc", ":kycId"],
+            "variable": [
+              {
+                "key": "kycId",
+                "value": "kyc_id_here"
+              }
+            ]
+          },
+          "description": "Get single KYC submission details"
+        }
+      },
+      {
+        "name": "Approve KYC",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"note\": \"Documents verified successfully\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/kyc/:kycId/approve",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "kyc", ":kycId", "approve"],
+            "variable": [
+              {
+                "key": "kycId",
+                "value": "kyc_id_here"
+              }
+            ]
+          },
+          "description": "Approve a KYC submission"
+        }
+      },
+      {
+        "name": "Reject KYC",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"reason\": \"Documents are not clear. Please resubmit.\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/kyc/:kycId/reject",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "kyc", ":kycId", "reject"],
+            "variable": [
+              {
+                "key": "kycId",
+                "value": "kyc_id_here"
+              }
+            ]
+          },
+          "description": "Reject a KYC submission with reason"
+        }
+      }
+    ]
+  },
+  "admin_mining": {
+    "name": "⛏️ Admin - Mining Management",
+    "description": "Admin endpoints for mining operations",
+    "item": [
+      {
+        "name": "Get All Mining Sessions",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/mining/sessions?page=1&limit=10&status=all",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "mining", "sessions"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              },
+              {
+                "key": "status",
+                "value": "all",
+                "description": "Filter: all, active, completed, cancelled"
+              }
+            ]
+          },
+          "description": "Get all mining sessions"
+        }
+      },
+      {
+        "name": "Get Mining Stats",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/mining/stats",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "mining", "stats"]
+          },
+          "description": "Get mining statistics"
+        }
+      },
+      {
+        "name": "Get Active Miners",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/mining/active",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "mining", "active"]
+          },
+          "description": "Get list of currently active miners"
+        }
+      },
+      {
+        "name": "Get Mining Leaderboard",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/mining/leaderboard",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "mining", "leaderboard"]
+          },
+          "description": "Get mining leaderboard"
+        }
+      },
+      {
+        "name": "Get Mining Settings",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/mining/settings",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "mining", "settings"]
+          },
+          "description": "Get mining configuration settings"
+        }
+      },
+      {
+        "name": "Update Mining Settings",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"miningRate\": 0.30,\n  \"miningCycleDuration\": 24,\n  \"maxCoinsPerCycle\": 200,\n  \"boostCost\": 50,\n  \"referralBoostPercent\": 20\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/mining/settings",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "mining", "settings"]
+          },
+          "description": "Update mining configuration"
+        }
+      },
+      {
+        "name": "Cancel Mining Session",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/mining/sessions/:sessionId/cancel",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "mining", "sessions", ":sessionId", "cancel"],
+            "variable": [
+              {
+                "key": "sessionId",
+                "value": "session_id_here"
+              }
+            ]
+          },
+          "description": "Cancel a mining session"
+        }
+      }
+    ]
+  },
+  "admin_transactions": {
+    "name": "💳 Admin - Transactions",
+    "description": "Admin endpoints for transaction management",
+    "item": [
+      {
+        "name": "Get All Transactions",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/transactions?page=1&limit=10&type=all&status=all",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "transactions"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              },
+              {
+                "key": "type",
+                "value": "all",
+                "description": "Filter: all, withdrawal, purchase, mining, referral, bonus"
+              },
+              {
+                "key": "status",
+                "value": "all",
+                "description": "Filter: all, pending, completed, failed, cancelled"
+              }
+            ]
+          },
+          "description": "Get all transactions"
+        }
+      },
+      {
+        "name": "Get Transaction Stats",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/transactions/stats",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "transactions", "stats"]
+          },
+          "description": "Get transaction statistics"
+        }
+      },
+      {
+        "name": "Get Transaction by ID",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/transactions/:transactionId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "transactions", ":transactionId"],
+            "variable": [
+              {
+                "key": "transactionId",
+                "value": "transaction_id_here"
+              }
+            ]
+          },
+          "description": "Get single transaction details"
+        }
+      },
+      {
+        "name": "Approve Withdrawal",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"note\": \"Payment processed via UPI\",\n  \"transactionRef\": \"UTR123456789\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/transactions/:transactionId/approve",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "transactions", ":transactionId", "approve"],
+            "variable": [
+              {
+                "key": "transactionId",
+                "value": "transaction_id_here"
+              }
+            ]
+          },
+          "description": "Approve a withdrawal request"
+        }
+      },
+      {
+        "name": "Reject Withdrawal",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"reason\": \"Invalid UPI ID provided\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/transactions/:transactionId/reject",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "transactions", ":transactionId", "reject"],
+            "variable": [
+              {
+                "key": "transactionId",
+                "value": "transaction_id_here"
+              }
+            ]
+          },
+          "description": "Reject a withdrawal request"
+        }
+      }
+    ]
+  },
+  "admin_payments": {
+    "name": "💰 Admin - Payment Proofs",
+    "description": "Admin endpoints for payment proof verification",
+    "item": [
+      {
+        "name": "Get All Payments",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/payments?page=1&limit=10&status=all",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "payments"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              },
+              {
+                "key": "status",
+                "value": "all",
+                "description": "Filter: all, pending, approved, rejected"
+              }
+            ]
+          },
+          "description": "Get all payment proof submissions"
+        }
+      },
+      {
+        "name": "Get Payment Stats",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/payments/stats",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "payments", "stats"]
+          },
+          "description": "Get payment statistics"
+        }
+      },
+      {
+        "name": "Get Payment by ID",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/payments/:paymentId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "payments", ":paymentId"],
+            "variable": [
+              {
+                "key": "paymentId",
+                "value": "payment_id_here"
+              }
+            ]
+          },
+          "description": "Get payment proof details"
+        }
+      },
+      {
+        "name": "Approve Payment",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"note\": \"Payment verified\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/payments/:paymentId/approve",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "payments", ":paymentId", "approve"],
+            "variable": [
+              {
+                "key": "paymentId",
+                "value": "payment_id_here"
+              }
+            ]
+          },
+          "description": "Approve payment proof and credit coins"
+        }
+      },
+      {
+        "name": "Reject Payment",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"reason\": \"UTR number not found in our records\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/payments/:paymentId/reject",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "payments", ":paymentId", "reject"],
+            "variable": [
+              {
+                "key": "paymentId",
+                "value": "payment_id_here"
+              }
+            ]
+          },
+          "description": "Reject payment proof with reason"
+        }
+      }
+    ]
+  }
+}

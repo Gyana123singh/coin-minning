@@ -1,0 +1,132 @@
+{
+  "name": "🪙 Coin Packages",
+  "description": "Coin purchase and package endpoints",
+  "item": [
+    {
+      "name": "Get All Packages",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/coins/packages",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "coins", "packages"]
+        },
+        "description": "Get all active coin packages (Public)"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"packages\": [\n    {\n      \"id\": \"package_id\",\n      \"name\": \"Starter Pack\",\n      \"description\": \"Get started with 100 coins\",\n      \"coins\": 100,\n      \"bonusCoins\": 10,\n      \"totalCoins\": 110,\n      \"price\": 99,\n      \"currency\": \"INR\",\n      \"isFeatured\": false\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "Purchase Coins",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"packageId\": \"package_id_here\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/coins/purchase",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "coins", "purchase"]
+        },
+        "description": "Initiate coin package purchase"
+      },
+      "response": [
+        {
+          "name": "Success",
+          "status": "OK",
+          "code": 200,
+          "body": "{\n  \"success\": true,\n  \"message\": \"Purchase initiated\",\n  \"transaction\": {\n    \"id\": \"transaction_id\",\n    \"transactionId\": \"PUR-MK8GKS6H-O0UDJB\",\n    \"amount\": 99,\n    \"coins\": 110,\n    \"status\": \"pending\"\n  },\n  \"paymentInfo\": {\n    \"upiId\": \"payments@miningapp\"\n  }\n}"
+        }
+      ]
+    },
+    {
+      "name": "Upload Payment Proof",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userToken}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "transactionId",
+              "value": "transaction_id_here",
+              "type": "text"
+            },
+            {
+              "key": "screenshot",
+              "type": "file",
+              "src": ""
+            },
+            {
+              "key": "utrNumber",
+              "value": "UTR123456789",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/coins/upload-proof",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "coins", "upload-proof"]
+        },
+        "description": "Upload payment screenshot and UTR number"
+      }
+    },
+    {
+      "name": "Get My Purchases",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{userToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/coins/purchases?page=1&limit=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "coins", "purchases"],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Get user's coin purchase history"
+      }
+    }
+  ]
+}

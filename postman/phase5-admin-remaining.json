@@ -1,0 +1,1027 @@
+{
+  "admin_coins": {
+    "name": "🪙 Admin - Coin Packages",
+    "description": "Admin endpoints for coin package management",
+    "item": [
+      {
+        "name": "Get All Coin Packages",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/coins",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "coins"]
+          },
+          "description": "Get all coin packages"
+        }
+      },
+      {
+        "name": "Create Coin Package",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"name\": \"Mega Pack\",\n  \"coins\": 5000,\n  \"price\": 999,\n  \"originalPrice\": 1499,\n  \"discount\": 33,\n  \"description\": \"Best value coin package\",\n  \"badge\": \"Best Seller\",\n  \"isPopular\": true,\n  \"isActive\": true\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/coins",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "coins"]
+          },
+          "description": "Create a new coin package"
+        }
+      },
+      {
+        "name": "Get Coin Package by ID",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/coins/:packageId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "coins", ":packageId"],
+            "variable": [
+              {
+                "key": "packageId",
+                "value": "package_id_here"
+              }
+            ]
+          },
+          "description": "Get single coin package details"
+        }
+      },
+      {
+        "name": "Update Coin Package",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"name\": \"Ultra Mega Pack\",\n  \"coins\": 6000,\n  \"price\": 899,\n  \"discount\": 40\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/coins/:packageId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "coins", ":packageId"],
+            "variable": [
+              {
+                "key": "packageId",
+                "value": "package_id_here"
+              }
+            ]
+          },
+          "description": "Update coin package"
+        }
+      },
+      {
+        "name": "Delete Coin Package",
+        "request": {
+          "method": "DELETE",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/coins/:packageId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "coins", ":packageId"],
+            "variable": [
+              {
+                "key": "packageId",
+                "value": "package_id_here"
+              }
+            ]
+          },
+          "description": "Delete a coin package"
+        }
+      },
+      {
+        "name": "Toggle Package Status",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/coins/:packageId/toggle",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "coins", ":packageId", "toggle"],
+            "variable": [
+              {
+                "key": "packageId",
+                "value": "package_id_here"
+              }
+            ]
+          },
+          "description": "Toggle package active/inactive"
+        }
+      },
+      {
+        "name": "Reorder Packages",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"packages\": [\n    { \"id\": \"package1_id\", \"order\": 1 },\n    { \"id\": \"package2_id\", \"order\": 2 },\n    { \"id\": \"package3_id\", \"order\": 3 }\n  ]\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/coins/reorder",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "coins", "reorder"]
+          },
+          "description": "Reorder coin packages"
+        }
+      }
+    ]
+  },
+  "admin_banners": {
+    "name": "🖼️ Admin - Banners",
+    "description": "Admin endpoints for banner management",
+    "item": [
+      {
+        "name": "Get All Banners",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/banners",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "banners"]
+          },
+          "description": "Get all banners"
+        }
+      },
+      {
+        "name": "Create Banner",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "body": {
+            "mode": "formdata",
+            "formdata": [
+              {
+                "key": "image",
+                "type": "file",
+                "description": "Banner image file"
+              },
+              {
+                "key": "title",
+                "value": "Welcome Offer",
+                "type": "text"
+              },
+              {
+                "key": "description",
+                "value": "Get 100 coins free on signup",
+                "type": "text"
+              },
+              {
+                "key": "link",
+                "value": "/offers",
+                "type": "text"
+              },
+              {
+                "key": "isActive",
+                "value": "true",
+                "type": "text"
+              }
+            ]
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/banners",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "banners"]
+          },
+          "description": "Create a new banner with image upload"
+        }
+      },
+      {
+        "name": "Get Banner by ID",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/banners/:bannerId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "banners", ":bannerId"],
+            "variable": [
+              {
+                "key": "bannerId",
+                "value": "banner_id_here"
+              }
+            ]
+          },
+          "description": "Get single banner details"
+        }
+      },
+      {
+        "name": "Update Banner",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "body": {
+            "mode": "formdata",
+            "formdata": [
+              {
+                "key": "image",
+                "type": "file",
+                "description": "New banner image (optional)"
+              },
+              {
+                "key": "title",
+                "value": "Updated Offer",
+                "type": "text"
+              },
+              {
+                "key": "description",
+                "value": "Get 200 coins free",
+                "type": "text"
+              }
+            ]
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/banners/:bannerId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "banners", ":bannerId"],
+            "variable": [
+              {
+                "key": "bannerId",
+                "value": "banner_id_here"
+              }
+            ]
+          },
+          "description": "Update banner"
+        }
+      },
+      {
+        "name": "Delete Banner",
+        "request": {
+          "method": "DELETE",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/banners/:bannerId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "banners", ":bannerId"],
+            "variable": [
+              {
+                "key": "bannerId",
+                "value": "banner_id_here"
+              }
+            ]
+          },
+          "description": "Delete a banner"
+        }
+      },
+      {
+        "name": "Toggle Banner Status",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/banners/:bannerId/toggle",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "banners", ":bannerId", "toggle"],
+            "variable": [
+              {
+                "key": "bannerId",
+                "value": "banner_id_here"
+              }
+            ]
+          },
+          "description": "Toggle banner active/inactive"
+        }
+      },
+      {
+        "name": "Reorder Banners",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"banners\": [\n    { \"id\": \"banner1_id\", \"order\": 1 },\n    { \"id\": \"banner2_id\", \"order\": 2 }\n  ]\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/banners/reorder",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "banners", "reorder"]
+          },
+          "description": "Reorder banners"
+        }
+      }
+    ]
+  },
+  "admin_referrals": {
+    "name": "👥 Admin - Referrals",
+    "description": "Admin endpoints for referral management",
+    "item": [
+      {
+        "name": "Get All Referrals",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/referrals?page=1&limit=10",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "referrals"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              }
+            ]
+          },
+          "description": "Get all referral records"
+        }
+      },
+      {
+        "name": "Get Referral Stats",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/referrals/stats",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "referrals", "stats"]
+          },
+          "description": "Get referral statistics"
+        }
+      },
+      {
+        "name": "Get Referral Settings",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/referrals/settings",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "referrals", "settings"]
+          },
+          "description": "Get referral program settings"
+        }
+      },
+      {
+        "name": "Update Referral Settings",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"referrerBonus\": 100,\n  \"refereeBonus\": 50,\n  \"miningBoostPercent\": 20,\n  \"isEnabled\": true\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/referrals/settings",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "referrals", "settings"]
+          },
+          "description": "Update referral program settings"
+        }
+      },
+      {
+        "name": "Get Top Referrers",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/referrals/top?limit=10",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "referrals", "top"],
+            "query": [
+              {
+                "key": "limit",
+                "value": "10"
+              }
+            ]
+          },
+          "description": "Get top referrers list"
+        }
+      }
+    ]
+  },
+  "admin_settings": {
+    "name": "⚙️ Admin - Settings",
+    "description": "Admin endpoints for app settings",
+    "item": [
+      {
+        "name": "Get All Settings",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/settings",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "settings"]
+          },
+          "description": "Get all app settings"
+        }
+      },
+      {
+        "name": "Update App Settings",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"appName\": \"Mining Pro\",\n  \"appVersion\": \"1.0.0\",\n  \"signupBonus\": 100,\n  \"dailyCheckInBonus\": 5,\n  \"isMaintenanceMode\": false\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/settings/app",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "settings", "app"]
+          },
+          "description": "Update general app settings"
+        }
+      },
+      {
+        "name": "Update Social Links",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"telegram\": \"https://t.me/miningpro\",\n  \"twitter\": \"https://twitter.com/miningpro\",\n  \"instagram\": \"https://instagram.com/miningpro\",\n  \"youtube\": \"https://youtube.com/@miningpro\",\n  \"facebook\": \"https://facebook.com/miningpro\",\n  \"discord\": \"https://discord.gg/miningpro\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/settings/social",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "settings", "social"]
+          },
+          "description": "Update social media links"
+        }
+      },
+      {
+        "name": "Update Withdrawal Settings",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"minWithdrawal\": 100,\n  \"maxWithdrawal\": 10000,\n  \"withdrawalFee\": 2,\n  \"coinToRupeeRate\": 0.5,\n  \"isWithdrawalEnabled\": true,\n  \"supportedMethods\": [\"UPI\", \"Bank Transfer\", \"PayTM\"]\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/settings/withdrawal",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "settings", "withdrawal"]
+          },
+          "description": "Update withdrawal settings"
+        }
+      },
+      {
+        "name": "Update Mining Settings",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"baseMiningRate\": 0.25,\n  \"miningDuration\": 24,\n  \"maxCoinsPerSession\": 150,\n  \"boostMultiplier\": 2,\n  \"boostCost\": 50\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/settings/mining",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "settings", "mining"]
+          },
+          "description": "Update mining settings"
+        }
+      },
+      {
+        "name": "Update Payment Settings",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"upiId\": \"miningpro@upi\",\n  \"paymentQrCode\": \"https://cloudinary.com/qr.png\",\n  \"bankDetails\": {\n    \"accountName\": \"Mining Pro Pvt Ltd\",\n    \"accountNumber\": \"1234567890\",\n    \"ifscCode\": \"SBIN0001234\",\n    \"bankName\": \"State Bank of India\"\n  }\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/settings/payment",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "settings", "payment"]
+          },
+          "description": "Update payment receiving settings"
+        }
+      },
+      {
+        "name": "Toggle Maintenance Mode",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"isMaintenanceMode\": true,\n  \"maintenanceMessage\": \"System under maintenance. Please try again later.\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/settings/maintenance",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "settings", "maintenance"]
+          },
+          "description": "Toggle maintenance mode"
+        }
+      }
+    ]
+  },
+  "admin_notifications": {
+    "name": "🔔 Admin - Notifications",
+    "description": "Admin endpoints for notification management",
+    "item": [
+      {
+        "name": "Get All Notifications",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/notifications?page=1&limit=10",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "notifications"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              }
+            ]
+          },
+          "description": "Get all sent notifications"
+        }
+      },
+      {
+        "name": "Get Notification Stats",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/notifications/stats",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "notifications", "stats"]
+          },
+          "description": "Get notification statistics"
+        }
+      },
+      {
+        "name": "Send Notification to User",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"userId\": \"user_id_here\",\n  \"title\": \"Special Offer!\",\n  \"message\": \"You have a new reward waiting for you!\",\n  \"type\": \"promo\",\n  \"data\": {\n    \"screen\": \"rewards\",\n    \"offerId\": \"offer123\"\n  }\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/notifications",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "notifications"]
+          },
+          "description": "Send notification to a specific user"
+        }
+      },
+      {
+        "name": "Send Bulk Notification",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"title\": \"New Feature Released!\",\n  \"message\": \"Check out our new mining boost feature!\",\n  \"type\": \"announcement\",\n  \"target\": \"all\",\n  \"filters\": {\n    \"minCoins\": 100,\n    \"isKycVerified\": true\n  }\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/notifications/bulk",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "notifications", "bulk"]
+          },
+          "description": "Send notification to multiple users"
+        }
+      },
+      {
+        "name": "Delete Notification",
+        "request": {
+          "method": "DELETE",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/notifications/:notificationId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "notifications", ":notificationId"],
+            "variable": [
+              {
+                "key": "notificationId",
+                "value": "notification_id_here"
+              }
+            ]
+          },
+          "description": "Delete a notification"
+        }
+      }
+    ]
+  },
+  "admin_promo_codes": {
+    "name": "🎫 Admin - Promo Codes",
+    "description": "Admin endpoints for promo code management",
+    "item": [
+      {
+        "name": "Get All Promo Codes",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/promo-codes?page=1&limit=10&status=all",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "promo-codes"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              },
+              {
+                "key": "status",
+                "value": "all",
+                "description": "Filter: all, active, expired, disabled"
+              }
+            ]
+          },
+          "description": "Get all promo codes"
+        }
+      },
+      {
+        "name": "Create Promo Code",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"code\": \"WELCOME100\",\n  \"type\": \"coins\",\n  \"value\": 100,\n  \"maxUses\": 1000,\n  \"maxUsesPerUser\": 1,\n  \"expiresAt\": \"2025-12-31T23:59:59.000Z\",\n  \"description\": \"Welcome bonus code\",\n  \"isActive\": true\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/promo-codes",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "promo-codes"]
+          },
+          "description": "Create a new promo code"
+        }
+      },
+      {
+        "name": "Get Promo Code by ID",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/promo-codes/:promoId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "promo-codes", ":promoId"],
+            "variable": [
+              {
+                "key": "promoId",
+                "value": "promo_id_here"
+              }
+            ]
+          },
+          "description": "Get promo code details"
+        }
+      },
+      {
+        "name": "Update Promo Code",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"value\": 150,\n  \"maxUses\": 2000,\n  \"expiresAt\": \"2026-06-30T23:59:59.000Z\"\n}"
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/promo-codes/:promoId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "promo-codes", ":promoId"],
+            "variable": [
+              {
+                "key": "promoId",
+                "value": "promo_id_here"
+              }
+            ]
+          },
+          "description": "Update promo code"
+        }
+      },
+      {
+        "name": "Delete Promo Code",
+        "request": {
+          "method": "DELETE",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/promo-codes/:promoId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "promo-codes", ":promoId"],
+            "variable": [
+              {
+                "key": "promoId",
+                "value": "promo_id_here"
+              }
+            ]
+          },
+          "description": "Delete a promo code"
+        }
+      },
+      {
+        "name": "Toggle Promo Code Status",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/promo-codes/:promoId/toggle",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "promo-codes", ":promoId", "toggle"],
+            "variable": [
+              {
+                "key": "promoId",
+                "value": "promo_id_here"
+              }
+            ]
+          },
+          "description": "Toggle promo code active/inactive"
+        }
+      },
+      {
+        "name": "Get Promo Code Usage",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{adminToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/admin/promo-codes/:promoId/usage?page=1&limit=10",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "admin", "promo-codes", ":promoId", "usage"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              }
+            ],
+            "variable": [
+              {
+                "key": "promoId",
+                "value": "promo_id_here"
+              }
+            ]
+          },
+          "description": "Get promo code usage history"
+        }
+      }
+    ]
+  }
+}

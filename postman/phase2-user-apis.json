@@ -1,0 +1,459 @@
+{
+  "kyc": {
+    "name": "📄 KYC",
+    "description": "KYC verification endpoints",
+    "item": [
+      {
+        "name": "Get KYC Status",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/kyc/status",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "kyc", "status"]
+          },
+          "description": "Get KYC status and eligibility checklist"
+        },
+        "response": [
+          {
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"success\": true,\n  \"kycStatus\": \"none\",\n  \"isEligible\": false,\n  \"overallProgress\": 1.7,\n  \"checklist\": [\n    {\n      \"id\": \"ownership\",\n      \"title\": \"Complete ownership information over 30 days\",\n      \"progress\": 0,\n      \"current\": 0,\n      \"required\": 30\n    },\n    {\n      \"id\": \"mining\",\n      \"title\": \"Complete mining for at least 20 sessions\",\n      \"progress\": 5,\n      \"current\": 1,\n      \"required\": 20\n    },\n    {\n      \"id\": \"kyc_invite\",\n      \"title\": \"Received invitation to join KYC program\",\n      \"progress\": 0,\n      \"required\": 1\n    }\n  ]\n}"
+          }
+        ]
+      },
+      {
+        "name": "Submit KYC",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "body": {
+            "mode": "formdata",
+            "formdata": [
+              {
+                "key": "fullName",
+                "value": "John Doe",
+                "type": "text"
+              },
+              {
+                "key": "dateOfBirth",
+                "value": "1990-01-15",
+                "type": "text"
+              },
+              {
+                "key": "address",
+                "value": "123 Main St, City, State 12345",
+                "type": "text"
+              },
+              {
+                "key": "documentType",
+                "value": "aadhaar",
+                "type": "text",
+                "description": "aadhaar, pan, passport, voter_id, driving_license"
+              },
+              {
+                "key": "documentNumber",
+                "value": "1234-5678-9012",
+                "type": "text"
+              },
+              {
+                "key": "documentFront",
+                "type": "file",
+                "src": ""
+              },
+              {
+                "key": "documentBack",
+                "type": "file",
+                "src": ""
+              },
+              {
+                "key": "selfie",
+                "type": "file",
+                "src": ""
+              }
+            ]
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/kyc/submit",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "kyc", "submit"]
+          },
+          "description": "Submit KYC documents for verification\n\n**Document Types:**\n- aadhaar\n- pan\n- passport\n- voter_id\n- driving_license"
+        }
+      },
+      {
+        "name": "Get KYC Submission",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/kyc/submission",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "kyc", "submission"]
+          },
+          "description": "Get current KYC submission details"
+        }
+      }
+    ]
+  },
+  "notifications": {
+    "name": "🔔 Notifications",
+    "description": "User notification endpoints",
+    "item": [
+      {
+        "name": "Get Notifications",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/notifications?page=1&limit=10",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "notifications"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              }
+            ]
+          },
+          "description": "Get paginated user notifications"
+        }
+      },
+      {
+        "name": "Get Unread Count",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/notifications/unread-count",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "notifications", "unread-count"]
+          },
+          "description": "Get count of unread notifications"
+        }
+      },
+      {
+        "name": "Mark as Read",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/notifications/:notificationId/read",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "notifications", ":notificationId", "read"],
+            "variable": [
+              {
+                "key": "notificationId",
+                "value": "notification_id_here"
+              }
+            ]
+          },
+          "description": "Mark single notification as read"
+        }
+      },
+      {
+        "name": "Mark All as Read",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/notifications/read-all",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "notifications", "read-all"]
+          },
+          "description": "Mark all notifications as read"
+        }
+      },
+      {
+        "name": "Delete Notification",
+        "request": {
+          "method": "DELETE",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/notifications/:notificationId",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "notifications", ":notificationId"],
+            "variable": [
+              {
+                "key": "notificationId",
+                "value": "notification_id_here"
+              }
+            ]
+          },
+          "description": "Delete a notification"
+        }
+      },
+      {
+        "name": "Update FCM Token",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"fcmToken\": \"firebase_cloud_messaging_token\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          },
+          "url": {
+            "raw": "{{baseUrl}}/api/notifications/fcm-token",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "notifications", "fcm-token"]
+          },
+          "description": "Update Firebase Cloud Messaging token for push notifications"
+        }
+      }
+    ]
+  },
+  "referrals": {
+    "name": "🔗 Referrals",
+    "description": "Referral system endpoints",
+    "item": [
+      {
+        "name": "Validate Referral Code (Public)",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/referrals/validate/:code",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "referrals", "validate", ":code"],
+            "variable": [
+              {
+                "key": "code",
+                "value": "TESTUSER"
+              }
+            ]
+          },
+          "description": "Validate a referral code before signup"
+        },
+        "response": [
+          {
+            "name": "Valid",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"success\": true,\n  \"valid\": true,\n  \"referrer\": {\n    \"name\": \"Test User\"\n  }\n}"
+          }
+        ]
+      },
+      {
+        "name": "Get My Referrals",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/referrals?page=1&limit=10",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "referrals"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              }
+            ]
+          },
+          "description": "Get list of user's referrals with stats"
+        },
+        "response": [
+          {
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"success\": true,\n  \"referrals\": [],\n  \"stats\": {\n    \"totalReferrals\": 0,\n    \"directReferrals\": 0,\n    \"indirectReferrals\": 0,\n    \"activeCount\": 0,\n    \"totalEarned\": 0\n  },\n  \"referralCode\": \"TESTUSER\"\n}"
+          }
+        ]
+      },
+      {
+        "name": "Get Share Link",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/referrals/share",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "referrals", "share"]
+          },
+          "description": "Get shareable referral link"
+        }
+      },
+      {
+        "name": "Get Referral Earnings",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/referrals/earnings?page=1&limit=10",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "referrals", "earnings"],
+            "query": [
+              {
+                "key": "page",
+                "value": "1"
+              },
+              {
+                "key": "limit",
+                "value": "10"
+              }
+            ]
+          },
+          "description": "Get referral earnings history"
+        }
+      },
+      {
+        "name": "Ping Inactive Referrals",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{userToken}}"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/referrals/ping",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "referrals", "ping"]
+          },
+          "description": "Send reminder to inactive referrals"
+        }
+      }
+    ]
+  },
+  "settings": {
+    "name": "⚙️ Settings (Public)",
+    "description": "Public app settings endpoints",
+    "item": [
+      {
+        "name": "Get App Settings",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/settings",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "settings"]
+          },
+          "description": "Get public app settings"
+        },
+        "response": [
+          {
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"success\": true,\n  \"settings\": {\n    \"appName\": \"Mining App\",\n    \"appVersion\": \"1.0.0\",\n    \"miningRate\": 0.25,\n    \"miningCycleDuration\": 24,\n    \"directReferralBonus\": 50,\n    \"indirectReferralBonus\": 20,\n    \"signupBonus\": 100,\n    \"maintenanceMode\": false,\n    \"minWithdrawal\": 100,\n    \"coinValue\": 0.01\n  }\n}"
+          }
+        ]
+      },
+      {
+        "name": "Get Social Links",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/settings/social",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "settings", "social"]
+          },
+          "description": "Get social media links"
+        }
+      },
+      {
+        "name": "Check Maintenance Mode",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/settings/maintenance",
+            "host": ["{{baseUrl}}"],
+            "path": ["api", "settings", "maintenance"]
+          },
+          "description": "Check if app is in maintenance mode"
+        },
+        "response": [
+          {
+            "name": "Success",
+            "status": "OK",
+            "code": 200,
+            "body": "{\n  \"success\": true,\n  \"maintenanceMode\": false,\n  \"message\": null\n}"
+          }
+        ]
+      }
+    ]
+  }
+}
