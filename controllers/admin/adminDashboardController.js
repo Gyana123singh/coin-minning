@@ -120,6 +120,21 @@ exports.getDashboardStats = async (req, res) => {
       { $group: { _id: null, total: { $sum: "$earnedCoins" } } },
     ]);
 
+    // Today mined coins
+    const todayMinedResult = await MiningSession.aggregate([
+      {
+        $match: {
+          status: "completed",
+          endTime: { $exists: true, $gte: todayStart },
+        },
+      },
+      {
+        $group: { _id: null, total: { $sum: "$earnedCoins" } },
+      },
+    ]);
+
+    const todayMinedCoins = todayMinedResult[0]?.total || 0;
+
     // Also calculate total mined coins from User miningStats (more accurate)
     const totalMinedFromUsers = await User.aggregate([
       { $group: { _id: null, total: { $sum: "$miningStats.totalMined" } } },
@@ -151,6 +166,10 @@ exports.getDashboardStats = async (req, res) => {
     // Referral stats
     const totalReferrals = await Referral.countDocuments();
     const activeReferrals = await Referral.countDocuments({ status: "active" });
+
+    const todayReferrals = await Referral.countDocuments({
+      createdAt: { $gte: todayStart },
+    });
 
     // Revenue from coin purchases
     const revenueResult = await Transaction.aggregate([
@@ -203,6 +222,7 @@ exports.getDashboardStats = async (req, res) => {
           total: totalUsers,
           active: activeUsers,
           new: newUsers,
+          today: todayCount, // ✅ ADD THIS
           suspended: suspendedUsers,
         },
         kyc: {
@@ -215,6 +235,7 @@ exports.getDashboardStats = async (req, res) => {
           totalSessions: totalMiningSessions,
           totalMinedCoins: Math.round(totalMinedCoins),
           totalCoins: Math.round(totalCoins),
+          todayMinedCoins: Math.round(todayMinedCoins), // ✅ ADD THIS
         },
         transactions: {
           pendingWithdrawals,
@@ -224,6 +245,7 @@ exports.getDashboardStats = async (req, res) => {
         referrals: {
           total: totalReferrals,
           active: activeReferrals,
+          today: todayReferrals, // ✅ ADD THIS
         },
       },
       signupActivity, // ✅ ADD THIS LINE
