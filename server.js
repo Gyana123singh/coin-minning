@@ -158,7 +158,13 @@ app.set("io", io);
 app.set("connectedUsers", connectedUsers);
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://coin-minning.onrender.com"], // Add your frontend origins here
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -173,7 +179,6 @@ app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/settings", require("./routes/settingsRoutes"));
 app.use("/api/wallet", require("./routes/walletRoutes"));
 app.use("/api/coins", require("./routes/coinRoutes"));
-
 
 // Admin Routes
 app.use("/api/admin", require("./routes/admin"));

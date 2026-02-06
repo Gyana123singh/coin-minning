@@ -1,4 +1,4 @@
-const Feed = require("../models/Feed");
+const Feed = require("../../models/CommunityFeed");
 
 // ================= ADMIN =================
 

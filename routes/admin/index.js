@@ -14,6 +14,7 @@ const bannerRoutes = require('./bannerRoutes');
 const referralRoutes = require('./referralRoutes');
 const settingsRoutes = require('./settingsRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const communityFeedRoutes = require('./CommunityFeedRoutes');
 
 // Mount routes
 router.use('/auth', authRoutes);
@@ -28,5 +29,6 @@ router.use('/banners', bannerRoutes);
 router.use('/referrals', referralRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/feed', communityFeedRoutes);
 
 module.exports = router;
