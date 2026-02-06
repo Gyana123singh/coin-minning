@@ -1,25 +1,26 @@
-const User = require('../models/User');
-const Wallet = require('../models/Wallet');
-const Transaction = require('../models/Transaction');
-const CoinPackage = require('../models/CoinPackage');
-const Notification = require('../models/Notification');
-const Settings = require('../models/Settings');
-const { parsePagination } = require('../utils/helpers');
+const User = require("../models/User");
+const Wallet = require("../models/Wallet");
+const Transaction = require("../models/Transaction");
+const CoinPackage = require("../models/CoinPackage");
+const Notification = require("../models/Notification");
+const Settings = require("../models/Settings");
+const { parsePagination } = require("../utils/helpers");
 
 // @desc    Get available coin packages
 // @route   GET /api/coins/packages
 // @access  Public
 const getCoinPackages = async (req, res) => {
   try {
-    const packages = await CoinPackage.find({ isActive: true })
-      .sort({ sortOrder: 1 });
+    const packages = await CoinPackage.find({ isActive: true }).sort({
+      sortOrder: 1,
+    });
 
     // Filter out expired packages
-    const availablePackages = packages.filter(pkg => pkg.isAvailable());
+    const availablePackages = packages.filter((pkg) => pkg.isAvailable());
 
     res.status(200).json({
       success: true,
-      packages: availablePackages.map(pkg => ({
+      packages: availablePackages.map((pkg) => ({
         id: pkg._id,
         name: pkg.name,
         description: pkg.description,
@@ -36,8 +37,10 @@ const getCoinPackages = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error('Get Coin Packages Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get coin packages' });
+    console.error("Get Coin Packages Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get coin packages" });
   }
 };
 
@@ -52,13 +55,15 @@ const getCoinRate = async (req, res) => {
       success: true,
       rate: {
         coinValue: settings.coinValue || 0.01,
-        currency: 'USD',
+        currency: "USD",
         lastUpdated: new Date(),
       },
     });
   } catch (error) {
-    console.error('Get Coin Rate Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get coin rate' });
+    console.error("Get Coin Rate Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get coin rate" });
   }
 };
 
@@ -70,26 +75,30 @@ const purchaseCoins = async (req, res) => {
     const { packageId, paymentMethod } = req.body;
 
     if (!packageId) {
-      return res.status(400).json({ success: false, message: 'Package ID is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Package ID is required" });
     }
 
     const coinPackage = await CoinPackage.findById(packageId);
     if (!coinPackage || !coinPackage.isAvailable()) {
-      return res.status(404).json({ success: false, message: 'Package not available' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Package not available" });
     }
 
     // Check purchase limits
     if (coinPackage.purchaseLimit > 0) {
       const purchaseCount = await Transaction.countDocuments({
         user: req.user._id,
-        type: 'purchase',
-        'metadata.packageId': packageId,
-        status: 'completed',
+        type: "purchase",
+        "metadata.packageId": packageId,
+        status: "completed",
       });
       if (purchaseCount >= coinPackage.purchaseLimit) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'You have reached the purchase limit for this package' 
+        return res.status(400).json({
+          success: false,
+          message: "You have reached the purchase limit for this package",
         });
       }
     }
@@ -97,18 +106,18 @@ const purchaseCoins = async (req, res) => {
     // Create pending transaction
     const transaction = await Transaction.create({
       user: req.user._id,
-      type: 'purchase',
+      type: "purchase",
       amount: coinPackage.price,
       coins: coinPackage.totalCoins,
       currency: coinPackage.currency,
-      status: 'pending',
-      paymentMethod: paymentMethod || 'upi',
+      status: "pending",
+      paymentMethod: paymentMethod || "upi",
       description: `Purchase of ${coinPackage.name} - ${coinPackage.totalCoins} coins`,
     });
 
     res.status(200).json({
       success: true,
-      message: 'Purchase initiated',
+      message: "Purchase initiated",
       transaction: {
         id: transaction._id,
         transactionId: transaction.transactionId,
@@ -126,9 +135,9 @@ const purchaseCoins = async (req, res) => {
       },
       paymentInfo: {
         // This would be your payment gateway info
-        upiId: process.env.PAYMENT_UPI_ID || 'payments@miningapp',
+        upiId: process.env.PAYMENT_UPI_ID || "payments@miningapp",
         bankDetails: {
-          accountName: process.env.PAYMENT_ACCOUNT_NAME || 'Mining App Pvt Ltd',
+          accountName: process.env.PAYMENT_ACCOUNT_NAME || "Mining App Pvt Ltd",
           accountNumber: process.env.PAYMENT_ACCOUNT_NUMBER,
           ifscCode: process.env.PAYMENT_IFSC_CODE,
           bankName: process.env.PAYMENT_BANK_NAME,
@@ -136,8 +145,10 @@ const purchaseCoins = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Purchase Coins Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to initiate purchase' });
+    console.error("Purchase Coins Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to initiate purchase" });
   }
 };
 
@@ -151,27 +162,33 @@ const submitPaymentProof = async (req, res) => {
     const transaction = await Transaction.findOne({
       _id: transactionId,
       user: req.user._id,
-      type: 'purchase',
-      status: 'pending',
+      type: "purchase",
+      status: "pending",
     });
 
     if (!transaction) {
-      return res.status(404).json({ success: false, message: 'Transaction not found or already processed' });
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found or already processed",
+      });
     }
 
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Please upload payment screenshot' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Please upload payment screenshot" });
     }
 
     transaction.paymentProof = req.file.path;
-    transaction.status = 'processing';
+    transaction.status = "processing";
     await transaction.save();
 
     // Notify admin (you could implement admin notification here)
 
     res.status(200).json({
       success: true,
-      message: 'Payment proof submitted. Your purchase will be verified shortly.',
+      message:
+        "Payment proof submitted. Your purchase will be verified shortly.",
       transaction: {
         id: transaction._id,
         transactionId: transaction.transactionId,
@@ -179,8 +196,10 @@ const submitPaymentProof = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Submit Payment Proof Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to submit payment proof' });
+    console.error("Submit Payment Proof Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to submit payment proof" });
   }
 };
 
@@ -194,24 +213,29 @@ const cancelPurchase = async (req, res) => {
     const transaction = await Transaction.findOne({
       _id: transactionId,
       user: req.user._id,
-      type: 'purchase',
-      status: 'pending',
+      type: "purchase",
+      status: "pending",
     });
 
     if (!transaction) {
-      return res.status(404).json({ success: false, message: 'Transaction not found or cannot be cancelled' });
+      return res.status(404).json({
+        success: false,
+        message: "Transaction not found or cannot be cancelled",
+      });
     }
 
-    transaction.status = 'cancelled';
+    transaction.status = "cancelled";
     await transaction.save();
 
     res.status(200).json({
       success: true,
-      message: 'Purchase cancelled',
+      message: "Purchase cancelled",
     });
   } catch (error) {
-    console.error('Cancel Purchase Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to cancel purchase' });
+    console.error("Cancel Purchase Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to cancel purchase" });
   }
 };
 
@@ -224,7 +248,7 @@ const getPurchaseHistory = async (req, res) => {
 
     const purchases = await Transaction.find({
       user: req.user._id,
-      type: 'purchase',
+      type: "purchase",
     })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -232,18 +256,18 @@ const getPurchaseHistory = async (req, res) => {
 
     const total = await Transaction.countDocuments({
       user: req.user._id,
-      type: 'purchase',
+      type: "purchase",
     });
 
     // Summary
     const summary = await Transaction.aggregate([
-      { $match: { user: req.user._id, type: 'purchase', status: 'completed' } },
+      { $match: { user: req.user._id, type: "purchase", status: "completed" } },
       {
         $group: {
           _id: null,
           totalPurchases: { $sum: 1 },
-          totalCoins: { $sum: '$coins' },
-          totalSpent: { $sum: '$amount' },
+          totalCoins: { $sum: "$coins" },
+          totalSpent: { $sum: "$amount" },
         },
       },
     ]);
@@ -257,11 +281,17 @@ const getPurchaseHistory = async (req, res) => {
         total,
         pages: Math.ceil(total / limit),
       },
-      summary: summary[0] || { totalPurchases: 0, totalCoins: 0, totalSpent: 0 },
+      summary: summary[0] || {
+        totalPurchases: 0,
+        totalCoins: 0,
+        totalSpent: 0,
+      },
     });
   } catch (error) {
-    console.error('Get Purchase History Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get purchase history' });
+    console.error("Get Purchase History Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get purchase history" });
   }
 };
 
@@ -273,39 +303,51 @@ const transferCoins = async (req, res) => {
     const { recipientEmail, amount, note, fromWallet } = req.body; // fromWallet: 'mining', 'purchase', or 'auto'
 
     if (!recipientEmail || !amount || amount <= 0) {
-      return res.status(400).json({ success: false, message: 'Invalid transfer details' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid transfer details" });
     }
 
     // Find recipient
-    const recipient = await User.findOne({ email: recipientEmail.toLowerCase() });
+    const recipient = await User.findOne({
+      email: recipientEmail.toLowerCase(),
+    });
     if (!recipient) {
-      return res.status(404).json({ success: false, message: 'Recipient not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Recipient not found" });
     }
 
     if (recipient._id.toString() === req.user._id.toString()) {
-      return res.status(400).json({ success: false, message: 'Cannot transfer to yourself' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Cannot transfer to yourself" });
     }
 
     // Check sender wallet
     const senderWallet = await Wallet.findOne({ user: req.user._id });
     if (!senderWallet) {
-      return res.status(400).json({ success: false, message: 'Wallet not found' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Wallet not found" });
     }
 
     // Determine source wallet
-    const sourceWallet = fromWallet || 'auto';
+    const sourceWallet = fromWallet || "auto";
     let sourceBalance;
-    
-    if (sourceWallet === 'mining') {
+
+    if (sourceWallet === "mining") {
       sourceBalance = senderWallet.availableMiningCoins;
-    } else if (sourceWallet === 'purchase') {
+    } else if (sourceWallet === "purchase") {
       sourceBalance = senderWallet.availablePurchaseCoins;
     } else {
       sourceBalance = senderWallet.availableCoins;
     }
 
     if (sourceBalance < amount) {
-      return res.status(400).json({ success: false, message: 'Insufficient balance' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Insufficient balance" });
     }
 
     // Get or create recipient wallet
@@ -318,9 +360,9 @@ const transferCoins = async (req, res) => {
     }
 
     // Deduct from sender based on wallet type
-    if (sourceWallet === 'mining') {
+    if (sourceWallet === "mining") {
       await senderWallet.deductMiningCoins(amount);
-    } else if (sourceWallet === 'purchase') {
+    } else if (sourceWallet === "purchase") {
       await senderWallet.deductPurchaseCoins(amount);
     } else {
       await senderWallet.deductCoins(amount);
@@ -331,20 +373,24 @@ const transferCoins = async (req, res) => {
 
     // Update user model coins too (for backward compatibility)
     const sender = await User.findById(req.user._id);
-    sender.miningStats.totalCoins = Math.max(0, (sender.miningStats?.totalCoins || 0) - amount);
+    sender.miningStats.totalCoins = Math.max(
+      0,
+      (sender.miningStats?.totalCoins || 0) - amount,
+    );
     await sender.save();
 
-    recipient.miningStats.totalCoins = (recipient.miningStats?.totalCoins || 0) + amount;
+    recipient.miningStats.totalCoins =
+      (recipient.miningStats?.totalCoins || 0) + amount;
     await recipient.save();
 
     // Create transactions
     const senderTransaction = await Transaction.create({
       user: req.user._id,
-      type: 'transfer',
+      type: "transfer",
       amount: -amount,
       coins: -amount,
-      currency: 'COIN',
-      status: 'completed',
+      currency: "COIN",
+      status: "completed",
       description: `Transfer to ${recipient.name} (${recipientEmail})`,
       balanceAfter: senderWallet.miningBalance + senderWallet.purchaseBalance,
       metadata: {
@@ -354,24 +400,25 @@ const transferCoins = async (req, res) => {
 
     await Transaction.create({
       user: recipient._id,
-      type: 'transfer',
+      type: "transfer",
       amount: amount,
       coins: amount,
-      currency: 'COIN',
-      status: 'completed',
-      description: `Transfer from ${sender.name}${note ? `: ${note}` : ''}`,
-      balanceAfter: recipientWallet.miningBalance + recipientWallet.purchaseBalance,
+      currency: "COIN",
+      status: "completed",
+      description: `Transfer from ${sender.name}${note ? `: ${note}` : ""}`,
+      balanceAfter:
+        recipientWallet.miningBalance + recipientWallet.purchaseBalance,
       metadata: {
-        walletType: 'purchase', // Received coins go to purchase wallet
+        walletType: "purchase", // Received coins go to purchase wallet
       },
     });
 
     // Notify recipient
     await Notification.create({
       user: recipient._id,
-      type: 'reward',
-      title: 'Coins Received! 🎁',
-      message: `${sender.name} sent you ${amount} coins!${note ? ` Note: ${note}` : ''}`,
+      type: "reward",
+      title: "Coins Received! 🎁",
+      message: `${sender.name} sent you ${amount} coins!${note ? ` Note: ${note}` : ""}`,
     });
 
     res.status(200).json({
@@ -391,8 +438,10 @@ const transferCoins = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Transfer Coins Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to transfer coins' });
+    console.error("Transfer Coins Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to transfer coins" });
   }
 };
 
@@ -420,11 +469,18 @@ const getCoinBalance = async (req, res) => {
       success: true,
       balance: {
         // Total balance (all wallets combined)
-        totalCoins: wallet.miningBalance + wallet.purchaseBalance + wallet.referralBalance,
+        totalCoins:
+          wallet.miningBalance +
+          wallet.purchaseBalance +
+          wallet.referralBalance,
         totalAvailable: wallet.availableCoins,
         totalLocked: wallet.lockedCoins,
-        totalFiatValue: (wallet.miningBalance + wallet.purchaseBalance + wallet.referralBalance) * coinValue,
-        
+        totalFiatValue:
+          (wallet.miningBalance +
+            wallet.purchaseBalance +
+            wallet.referralBalance) *
+          coinValue,
+
         // Mining Wallet
         miningWallet: {
           balance: wallet.miningBalance,
@@ -433,7 +489,7 @@ const getCoinBalance = async (req, res) => {
           totalMined: wallet.totalMined,
           fiatValue: wallet.miningBalance * coinValue,
         },
-        
+
         // Purchase Wallet
         purchaseWallet: {
           balance: wallet.purchaseBalance,
@@ -442,21 +498,21 @@ const getCoinBalance = async (req, res) => {
           totalPurchased: wallet.totalPurchased,
           fiatValue: wallet.purchaseBalance * coinValue,
         },
-        
+
         // Referral Wallet
         referralWallet: {
           balance: wallet.referralBalance,
           totalEarned: wallet.totalReferralEarned,
           fiatValue: wallet.referralBalance * coinValue,
         },
-        
-        currency: 'USD',
+
+        currency: "USD",
         coinValue: coinValue,
       },
     });
   } catch (error) {
-    console.error('Get Coin Balance Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get balance' });
+    console.error("Get Coin Balance Error:", error);
+    res.status(500).json({ success: false, message: "Failed to get balance" });
   }
 };
 
@@ -470,19 +526,21 @@ const getPaymentInfo = async (req, res) => {
     res.status(200).json({
       success: true,
       paymentInfo: {
-        upiId: settings.paymentUpiId || '',
-        qrCodeUrl: settings.paymentUpiQrCode || '',
-        bankName: settings.paymentBankName || '',
-        accountNumber: settings.paymentAccountNumber || '',
-        ifscCode: settings.paymentIfscCode || '',
-        accountHolderName: settings.paymentAccountHolderName || '',
+        upiId: settings.paymentUpiId || "",
+        qrCodeUrl: settings.paymentUpiQrCode || "",
+        bankName: settings.paymentBankName || "",
+        accountNumber: settings.paymentAccountNumber || "",
+        ifscCode: settings.paymentIfscCode || "",
+        accountHolderName: settings.paymentAccountHolderName || "",
         coinPricePerDollar: settings.coinPricePerDollar || 10,
         coinValue: settings.coinValue || 0.01,
       },
     });
   } catch (error) {
-    console.error('Get Payment Info Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get payment info' });
+    console.error("Get Payment Info Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get payment info" });
   }
 };
 
@@ -494,28 +552,28 @@ const submitUpiTransaction = async (req, res) => {
     const { transactionId, amount, upiApp } = req.body;
 
     if (!transactionId || !amount) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Transaction ID and amount are required' 
+      return res.status(400).json({
+        success: false,
+        message: "Transaction ID and amount are required",
       });
     }
 
     if (amount <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Amount must be greater than 0' 
+      return res.status(400).json({
+        success: false,
+        message: "Amount must be greater than 0",
       });
     }
 
     // Check if transaction ID already submitted
     const existingTransaction = await Transaction.findOne({
-      'metadata.upiTransactionId': transactionId,
+      "metadata.upiTransactionId": transactionId,
     });
 
     if (existingTransaction) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'This transaction ID has already been submitted' 
+      return res.status(400).json({
+        success: false,
+        message: "This transaction ID has already been submitted",
       });
     }
 
@@ -526,16 +584,16 @@ const submitUpiTransaction = async (req, res) => {
     // Create pending transaction for admin to verify
     const transaction = await Transaction.create({
       user: req.user._id,
-      type: 'purchase',
+      type: "purchase",
       amount: amount,
       coins: coinsToReceive,
-      currency: 'USD',
-      status: 'pending',
-      paymentMethod: 'upi',
+      currency: "USD",
+      status: "pending",
+      paymentMethod: "upi",
       description: `Coin purchase - $${amount} for ${coinsToReceive} coins`,
       metadata: {
         upiTransactionId: transactionId,
-        upiApp: upiApp || 'unknown',
+        upiApp: upiApp || "unknown",
         coinPriceAtPurchase: coinPricePerDollar,
         submittedAt: new Date(),
       },
@@ -544,26 +602,91 @@ const submitUpiTransaction = async (req, res) => {
     // Notify user
     await Notification.create({
       user: req.user._id,
-      type: 'system',
-      title: 'Purchase Submitted',
+      type: "system",
+      title: "Purchase Submitted",
       message: `Your purchase of ${coinsToReceive} coins for $${amount} is pending verification. Transaction ID: ${transactionId}`,
     });
 
     res.status(200).json({
       success: true,
-      message: 'Transaction submitted successfully! Your coins will be credited after verification.',
+      message:
+        "Transaction submitted successfully! Your coins will be credited after verification.",
       transaction: {
         id: transaction._id,
         transactionId: transaction.transactionId,
         upiTransactionId: transactionId,
         amount: amount,
         coins: coinsToReceive,
-        status: 'pending',
+        status: "pending",
       },
     });
   } catch (error) {
-    console.error('Submit UPI Transaction Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to submit transaction' });
+    console.error("Submit UPI Transaction Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to submit transaction" });
+  }
+};
+
+// @desc    Get my wallet
+// @route   GET /api/coins/me/wallet
+// @access  Private
+const getMyWallet = async (req, res) => {
+  try {
+    let wallet = await Wallet.findOne({ user: req.user._id });
+
+    if (!wallet) {
+      wallet = await Wallet.create({ user: req.user._id });
+    }
+
+    res.status(200).json({
+      success: true,
+      wallet: {
+        miningBalance: wallet.miningBalance,
+        purchaseBalance: wallet.purchaseBalance,
+        referralBalance: wallet.referralBalance,
+        coinBalance: wallet.coinBalance,
+        totalEarned: wallet.totalEarned,
+        totalMined: wallet.totalMined,
+        totalReferralEarned: wallet.totalReferralEarned,
+        lockedCoins: wallet.lockedCoins,
+      },
+    });
+  } catch (error) {
+    console.error("Get My Wallet Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// @desc    Get my transactions
+// @route   GET /api/coins/me/transactions
+// @access  Private
+const getMyTransactions = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const skip = (page - 1) * limit;
+
+    const transactions = await Transaction.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Transaction.countDocuments({ user: req.user._id });
+
+    res.status(200).json({
+      success: true,
+      transactions,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Get My Transactions Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -578,4 +701,6 @@ module.exports = {
   getCoinBalance,
   getPaymentInfo,
   submitUpiTransaction,
+  getMyWallet,
+  getMyTransactions,
 };

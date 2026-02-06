@@ -1,43 +1,43 @@
-const Referral = require('../../models/Referral');
-const User = require('../../models/User');
-const Settings = require('../../models/Settings');
+const Referral = require("../../models/Referral");
+const User = require("../../models/User");
+const Settings = require("../../models/Settings");
 
 // @desc    Get all referrals
 // @route   GET /api/admin/referrals
 // @access  Private/Admin
 exports.getAllReferrals = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
+    const {
+      page = 1,
+      limit = 10,
       type,
       status,
       search,
-      sortBy = 'createdAt',
-      sortOrder = 'desc' 
+      sortBy = "createdAt",
+      sortOrder = "desc",
     } = req.query;
 
     // Build query
     const query = {};
 
-    if (type && type !== 'all') {
+    if (type && type !== "all") {
       query.type = type;
     }
 
-    if (status && status !== 'all') {
+    if (status && status !== "all") {
       query.status = status;
     }
 
     // Build sort
     const sort = {};
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    sort[sortBy] = sortOrder === "asc" ? 1 : -1;
 
     // Execute query with pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const referrals = await Referral.find(query)
-      .populate('referrer', 'name email avatar referralCode')
-      .populate('referred', 'name email avatar status')
+      .populate("referrer", "name email avatar referralCode")
+      .populate("referred", "name email avatar status")
       .sort(sort)
       .skip(skip)
       .limit(parseInt(limit));
@@ -55,8 +55,8 @@ exports.getAllReferrals = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get All Referrals Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Get All Referrals Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -66,14 +66,18 @@ exports.getAllReferrals = async (req, res) => {
 exports.getReferralStats = async (req, res) => {
   try {
     const totalReferrals = await Referral.countDocuments();
-    const directReferrals = await Referral.countDocuments({ type: 'direct' });
-    const indirectReferrals = await Referral.countDocuments({ type: 'indirect' });
-    const activeReferrals = await Referral.countDocuments({ status: 'active' });
-    const inactiveReferrals = await Referral.countDocuments({ status: 'inactive' });
+    const directReferrals = await Referral.countDocuments({ type: "direct" });
+    const indirectReferrals = await Referral.countDocuments({
+      type: "indirect",
+    });
+    const activeReferrals = await Referral.countDocuments({ status: "active" });
+    const inactiveReferrals = await Referral.countDocuments({
+      status: "inactive",
+    });
 
     // Total bonus distributed - using coinsEarned field
     const bonusResult = await Referral.aggregate([
-      { $group: { _id: null, total: { $sum: '$coinsEarned' } } },
+      { $group: { _id: null, total: { $sum: "$coinsEarned" } } },
     ]);
     const totalBonusDistributed = bonusResult[0]?.total || 0;
 
@@ -86,26 +90,32 @@ exports.getReferralStats = async (req, res) => {
 
     // Top referrers - using coinsEarned field
     const topReferrers = await Referral.aggregate([
-      { $match: { type: 'direct' } },
-      { $group: { _id: '$referrer', count: { $sum: 1 }, totalBonus: { $sum: '$coinsEarned' } } },
+      { $match: { type: "direct" } },
+      {
+        $group: {
+          _id: "$referrer",
+          count: { $sum: 1 },
+          totalBonus: { $sum: "$coinsEarned" },
+        },
+      },
       { $sort: { count: -1 } },
       { $limit: 5 },
       {
         $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'userInfo',
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "userInfo",
         },
       },
-      { $unwind: '$userInfo' },
+      { $unwind: "$userInfo" },
       {
         $project: {
           _id: 1,
           count: 1,
           totalBonus: 1,
-          name: '$userInfo.name',
-          email: '$userInfo.email',
+          name: "$userInfo.name",
+          email: "$userInfo.email",
         },
       },
     ]);
@@ -124,8 +134,8 @@ exports.getReferralStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Referral Stats Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Referral Stats Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -146,8 +156,8 @@ exports.getReferralSettings = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get Referral Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Get Referral Settings Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -164,25 +174,41 @@ exports.updateReferralSettings = async (req, res) => {
     } = req.body;
 
     if (directReferralBonus !== undefined) {
-      await Settings.setSetting('directReferralBonus', directReferralBonus, 'Direct referral bonus coins');
+      await Settings.setSetting(
+        "directReferralBonus",
+        directReferralBonus,
+        "Direct referral bonus coins",
+      );
     }
     if (indirectReferralBonus !== undefined) {
-      await Settings.setSetting('indirectReferralBonus', indirectReferralBonus, 'Indirect referral bonus coins');
+      await Settings.setSetting(
+        "indirectReferralBonus",
+        indirectReferralBonus,
+        "Indirect referral bonus coins",
+      );
     }
     if (signupBonus !== undefined) {
-      await Settings.setSetting('signupBonus', signupBonus, 'Signup bonus coins');
+      await Settings.setSetting(
+        "signupBonus",
+        signupBonus,
+        "Signup bonus coins",
+      );
     }
     if (referralBoostPercent !== undefined) {
-      await Settings.setSetting('referralBoostPercent', referralBoostPercent, 'Referral mining boost percentage');
+      await Settings.setSetting(
+        "referralBoostPercent",
+        referralBoostPercent,
+        "Referral mining boost percentage",
+      );
     }
 
     res.status(200).json({
       success: true,
-      message: 'Referral settings updated successfully',
+      message: "Referral settings updated successfully",
     });
   } catch (error) {
-    console.error('Update Referral Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Update Referral Settings Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -192,14 +218,20 @@ exports.updateReferralSettings = async (req, res) => {
 exports.getUserReferralTree = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId)
-      .select('name email referralCode referralStats')
-      .populate('referralStats.directReferrals', 'name email status miningStats.totalMined createdAt')
-      .populate('referralStats.indirectReferrals', 'name email status miningStats.totalMined createdAt');
+      .select("name email referralCode referralStats")
+      .populate(
+        "referralStats.directReferrals",
+        "name email status miningStats.totalMined createdAt",
+      )
+      .populate(
+        "referralStats.indirectReferrals",
+        "name email status miningStats.totalMined createdAt",
+      );
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: "User not found",
       });
     }
 
@@ -214,8 +246,8 @@ exports.getUserReferralTree = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get User Referral Tree Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Get User Referral Tree Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -227,8 +259,8 @@ exports.exportReferrals = async (req, res) => {
     const { type, status, startDate, endDate } = req.query;
 
     const query = {};
-    if (type && type !== 'all') query.type = type;
-    if (status && status !== 'all') query.status = status;
+    if (type && type !== "all") query.type = type;
+    if (status && status !== "all") query.status = status;
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate);
@@ -236,18 +268,18 @@ exports.exportReferrals = async (req, res) => {
     }
 
     const referrals = await Referral.find(query)
-      .populate('referrer', 'name email')
-      .populate('referred', 'name email')
+      .populate("referrer", "name email")
+      .populate("referred", "name email")
       .lean();
 
-    const exportData = referrals.map(ref => ({
-      ReferrerName: ref.referrer?.name || 'N/A',
-      ReferrerEmail: ref.referrer?.email || 'N/A',
-      ReferredName: ref.referred?.name || 'N/A',
-      ReferredEmail: ref.referred?.email || 'N/A',
+    const exportData = referrals.map((ref) => ({
+      ReferrerName: ref.referrer?.name || "N/A",
+      ReferrerEmail: ref.referrer?.email || "N/A",
+      ReferredName: ref.referred?.name || "N/A",
+      ReferredEmail: ref.referred?.email || "N/A",
       Type: ref.type,
       Status: ref.status,
-      Bonus: ref.bonus,
+      Bonus: ref.coinsEarned,
       Date: ref.createdAt,
     }));
 
@@ -256,7 +288,7 @@ exports.exportReferrals = async (req, res) => {
       data: exportData,
     });
   } catch (error) {
-    console.error('Export Referrals Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Export Referrals Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

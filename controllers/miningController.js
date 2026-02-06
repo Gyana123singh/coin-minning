@@ -1,10 +1,14 @@
-const User = require('../models/User');
-const Wallet = require('../models/Wallet');
-const MiningSession = require('../models/MiningSession');
-const Settings = require('../models/Settings');
-const Notification = require('../models/Notification');
-const Transaction = require('../models/Transaction');
-const { calculateMiningRewards, formatTimeRemaining, parsePagination } = require('../utils/helpers');
+const User = require("../models/User");
+const Wallet = require("../models/Wallet");
+const MiningSession = require("../models/MiningSession");
+const Settings = require("../models/Settings");
+const Notification = require("../models/Notification");
+const Transaction = require("../models/Transaction");
+const {
+  calculateMiningRewards,
+  formatTimeRemaining,
+  parsePagination,
+} = require("../utils/helpers");
 
 // @desc    Start mining
 // @route   POST /api/mining/start
@@ -20,7 +24,7 @@ const startMining = async (req, res) => {
       if (endTime > new Date()) {
         return res.status(400).json({
           success: false,
-          message: 'Mining already in progress',
+          message: "Mining already in progress",
           timeRemaining: formatTimeRemaining(endTime),
         });
       }
@@ -30,7 +34,7 @@ const startMining = async (req, res) => {
     if (settings.maintenanceMode) {
       return res.status(503).json({
         success: false,
-        message: 'Mining is currently under maintenance',
+        message: "Mining is currently under maintenance",
       });
     }
 
@@ -49,7 +53,7 @@ const startMining = async (req, res) => {
       levelBoost: rewards.levelBoostRate,
       totalRate: rewards.totalRate,
       expectedCoins: rewards.totalEarnings,
-      status: 'active', // Explicitly set status
+      status: "active", // Explicitly set status
     });
 
     // Update user mining stats
@@ -60,7 +64,7 @@ const startMining = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Mining started successfully',
+      message: "Mining started successfully",
       session: {
         id: session._id,
         startTime: session.startTime,
@@ -76,8 +80,8 @@ const startMining = async (req, res) => {
       timeRemaining: formatTimeRemaining(endTime),
     });
   } catch (error) {
-    console.error('Start Mining Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to start mining' });
+    console.error("Start Mining Error:", error);
+    res.status(500).json({ success: false, message: "Failed to start mining" });
   }
 };
 
@@ -89,7 +93,7 @@ const getMiningStatus = async (req, res) => {
     const user = await User.findById(req.user._id);
     const settings = await Settings.getSettings();
 
-    let status = 'idle';
+    let status = "idle";
     let timeRemaining = null;
     let currentSession = null;
 
@@ -97,13 +101,13 @@ const getMiningStatus = async (req, res) => {
     if (user.miningStats?.currentMiningEndTime) {
       const endTime = new Date(user.miningStats.currentMiningEndTime);
       if (endTime > new Date()) {
-        status = 'mining';
+        status = "mining";
         timeRemaining = formatTimeRemaining(endTime);
-        
+
         // Find active session - try multiple queries
         currentSession = await MiningSession.findOne({
           user: user._id,
-          status: 'active',
+          status: "active",
         }).sort({ createdAt: -1 });
 
         // Fallback: find by endTime if no active session found
@@ -112,19 +116,19 @@ const getMiningStatus = async (req, res) => {
             user: user._id,
             endTime: { $gt: new Date() },
           }).sort({ createdAt: -1 });
-          
+
           // Fix the status if found
-          if (currentSession && currentSession.status !== 'active') {
-            currentSession.status = 'active';
+          if (currentSession && currentSession.status !== "active") {
+            currentSession.status = "active";
             await currentSession.save();
           }
         }
       } else {
         // Mining cycle complete but not claimed
-        status = 'complete';
+        status = "complete";
         currentSession = await MiningSession.findOne({
           user: user._id,
-          status: 'active',
+          status: "active",
         }).sort({ createdAt: -1 });
 
         // Fallback for completed sessions
@@ -132,7 +136,7 @@ const getMiningStatus = async (req, res) => {
           currentSession = await MiningSession.findOne({
             user: user._id,
             endTime: { $lte: new Date() },
-            status: { $ne: 'cancelled' },
+            status: { $ne: "cancelled" },
           }).sort({ createdAt: -1 });
         }
       }
@@ -145,14 +149,16 @@ const getMiningStatus = async (req, res) => {
       success: true,
       status,
       timeRemaining,
-      currentSession: currentSession ? {
-        id: currentSession._id,
-        startTime: currentSession.startTime,
-        endTime: currentSession.endTime,
-        expectedCoins: currentSession.expectedCoins,
-        miningRate: currentSession.totalRate,
-        status: currentSession.status,
-      } : null,
+      currentSession: currentSession
+        ? {
+            id: currentSession._id,
+            startTime: currentSession.startTime,
+            endTime: currentSession.endTime,
+            expectedCoins: currentSession.expectedCoins,
+            miningRate: currentSession.totalRate,
+            status: currentSession.status,
+          }
+        : null,
       nextSessionRates: {
         baseRate: rewards.baseRate,
         referralRate: rewards.referralBoostRate,
@@ -168,8 +174,10 @@ const getMiningStatus = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get Mining Status Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get mining status' });
+    console.error("Get Mining Status Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get mining status" });
   }
 };
 
@@ -183,13 +191,13 @@ const claimRewards = async (req, res) => {
     // Check if there's a completed session to claim
     const session = await MiningSession.findOne({
       user: user._id,
-      status: 'active',
+      status: "active",
     }).sort({ createdAt: -1 });
 
     if (!session) {
       return res.status(400).json({
         success: false,
-        message: 'No rewards to claim',
+        message: "No rewards to claim",
       });
     }
 
@@ -197,13 +205,13 @@ const claimRewards = async (req, res) => {
     if (endTime > new Date()) {
       return res.status(400).json({
         success: false,
-        message: 'Mining cycle not yet complete',
+        message: "Mining cycle not yet complete",
         timeRemaining: formatTimeRemaining(endTime),
       });
     }
 
     // Update session
-    session.status = 'completed';
+    session.status = "completed";
     session.coinsEarned = session.expectedCoins;
     await session.save();
 
@@ -211,11 +219,12 @@ const claimRewards = async (req, res) => {
     user.miningStats.totalCoins += session.coinsEarned;
     user.miningStats.totalMined += session.coinsEarned;
     user.miningStats.currentMiningEndTime = null;
-    
+
     // Update streak
     const lastMining = user.miningStats.lastMiningTime;
     if (lastMining) {
-      const hoursSinceLastMining = (Date.now() - new Date(lastMining)) / (1000 * 60 * 60);
+      const hoursSinceLastMining =
+        (Date.now() - new Date(lastMining)) / (1000 * 60 * 60);
       if (hoursSinceLastMining <= 48) {
         user.miningStats.streak += 1;
       } else {
@@ -227,12 +236,12 @@ const claimRewards = async (req, res) => {
     const newLevel = Math.floor(user.miningStats.totalMined / 100) + 1;
     if (newLevel > user.miningStats.level) {
       user.miningStats.level = newLevel;
-      
+
       // Send level up notification
       await Notification.create({
         user: user._id,
-        type: 'mining',
-        title: 'Level Up! 🎉',
+        type: "mining",
+        title: "Level Up! 🎉",
         message: `Congratulations! You've reached Level ${newLevel}!`,
       });
     }
@@ -247,27 +256,32 @@ const claimRewards = async (req, res) => {
     await wallet.addMiningCoins(session.coinsEarned);
 
     // Emit wallet update via Socket.io for real-time update
-    const io = req.app.get('io');
-    const connectedUsers = req.app.get('connectedUsers');
+    const io = req.app.get("io");
+    const connectedUsers = req.app.get("connectedUsers");
     const socketId = connectedUsers?.get(user._id.toString());
-    
+
     if (io && socketId) {
       const walletData = {
         miningBalance: wallet.miningBalance || 0,
         purchaseBalance: wallet.purchaseBalance || 0,
         referralBalance: wallet.referralBalance || 0,
-        totalBalance: (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0) + (wallet.referralBalance || 0),
+        totalBalance:
+          (wallet.miningBalance || 0) +
+          (wallet.purchaseBalance || 0) +
+          (wallet.referralBalance || 0),
         lastUpdated: new Date().toISOString(),
-        reason: 'mining_claimed',
+        reason: "mining_claimed",
         coinsEarned: session.coinsEarned,
       };
-      io.to(socketId).emit('wallet-update', walletData);
-      console.log(`Emitted wallet-update to user ${user._id} after claiming ${session.coinsEarned} coins`);
+      io.to(socketId).emit("wallet-update", walletData);
+      console.log(
+        `Emitted wallet-update to user ${user._id} after claiming ${session.coinsEarned} coins`,
+      );
     }
 
     res.status(200).json({
       success: true,
-      message: 'Rewards claimed successfully',
+      message: "Rewards claimed successfully",
       coinsEarned: session.coinsEarned,
       totalCoins: user.miningStats.totalCoins,
       level: user.miningStats.level,
@@ -275,12 +289,17 @@ const claimRewards = async (req, res) => {
       wallets: {
         mining: wallet.miningBalance,
         purchase: wallet.purchaseBalance,
-        total: wallet.miningBalance + wallet.purchaseBalance + wallet.referralBalance,
+        total:
+          wallet.miningBalance +
+          wallet.purchaseBalance +
+          wallet.referralBalance,
       },
     });
   } catch (error) {
-    console.error('Claim Rewards Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to claim rewards' });
+    console.error("Claim Rewards Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to claim rewards" });
   }
 };
 
@@ -300,13 +319,13 @@ const getMiningHistory = async (req, res) => {
 
     // Calculate summary
     const summary = await MiningSession.aggregate([
-      { $match: { user: req.user._id, status: 'completed' } },
+      { $match: { user: req.user._id, status: "completed" } },
       {
         $group: {
           _id: null,
           totalSessions: { $sum: 1 },
-          totalCoins: { $sum: '$coinsEarned' },
-          avgCoins: { $avg: '$coinsEarned' },
+          totalCoins: { $sum: "$coinsEarned" },
+          avgCoins: { $avg: "$coinsEarned" },
         },
       },
     ]);
@@ -323,8 +342,10 @@ const getMiningHistory = async (req, res) => {
       summary: summary[0] || { totalSessions: 0, totalCoins: 0, avgCoins: 0 },
     });
   } catch (error) {
-    console.error('Get Mining History Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get mining history' });
+    console.error("Get Mining History Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get mining history" });
   }
 };
 
@@ -337,18 +358,18 @@ const cancelMining = async (req, res) => {
 
     const session = await MiningSession.findOne({
       user: user._id,
-      status: 'active',
+      status: "active",
     });
 
     if (!session) {
       return res.status(400).json({
         success: false,
-        message: 'No active mining session',
+        message: "No active mining session",
       });
     }
 
     // Cancel session
-    session.status = 'cancelled';
+    session.status = "cancelled";
     session.coinsEarned = 0;
     await session.save();
 
@@ -358,11 +379,13 @@ const cancelMining = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Mining cancelled. No rewards earned.',
+      message: "Mining cancelled. No rewards earned.",
     });
   } catch (error) {
-    console.error('Cancel Mining Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to cancel mining' });
+    console.error("Cancel Mining Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to cancel mining" });
   }
 };
 
@@ -376,30 +399,35 @@ const getLeaderboard = async (req, res) => {
 
     let dateFilter = {};
     const now = new Date();
-    
-    if (period === 'daily') {
+
+    if (period === "daily") {
       dateFilter = { createdAt: { $gte: new Date(now.setHours(0, 0, 0, 0)) } };
-    } else if (period === 'weekly') {
+    } else if (period === "weekly") {
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       dateFilter = { createdAt: { $gte: weekAgo } };
-    } else if (period === 'monthly') {
+    } else if (period === "monthly") {
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       dateFilter = { createdAt: { $gte: monthAgo } };
     }
 
     // Get top miners
-    const leaderboard = await User.find({ status: 'active' })
-      .select('name avatar miningStats.totalMined miningStats.level miningStats.streak')
-      .sort({ 'miningStats.totalMined': -1 })
+    const leaderboard = await User.find({ status: "active" })
+      .select(
+        "name avatar miningStats.totalMined miningStats.level miningStats.streak",
+      )
+      .sort({ "miningStats.totalMined": -1 })
       .skip(skip)
       .limit(limit);
 
     // Get current user's rank
     const currentUser = await User.findById(req.user._id);
-    const userRank = await User.countDocuments({
-      status: 'active',
-      'miningStats.totalMined': { $gt: currentUser.miningStats?.totalMined || 0 },
-    }) + 1;
+    const userRank =
+      (await User.countDocuments({
+        status: "active",
+        "miningStats.totalMined": {
+          $gt: currentUser.miningStats?.totalMined || 0,
+        },
+      })) + 1;
 
     res.status(200).json({
       success: true,
@@ -423,8 +451,10 @@ const getLeaderboard = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get Leaderboard Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get leaderboard' });
+    console.error("Get Leaderboard Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get leaderboard" });
   }
 };
 
@@ -434,8 +464,8 @@ const getLeaderboard = async (req, res) => {
 const boostMining = async (req, res) => {
   try {
     const { boostType } = req.body; // 'speed', 'duration'
-    
-    if (!boostType || !['speed', 'duration'].includes(boostType)) {
+
+    if (!boostType || !["speed", "duration"].includes(boostType)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid boost type. Use "speed" or "duration"',
@@ -449,7 +479,7 @@ const boostMining = async (req, res) => {
     if (!user.miningStats?.currentMiningEndTime) {
       return res.status(400).json({
         success: false,
-        message: 'No active mining session to boost. Start mining first.',
+        message: "No active mining session to boost. Start mining first.",
       });
     }
 
@@ -457,14 +487,15 @@ const boostMining = async (req, res) => {
     if (miningEndTime <= new Date()) {
       return res.status(400).json({
         success: false,
-        message: 'Mining session has ended. Claim rewards and start a new session.',
+        message:
+          "Mining session has ended. Claim rewards and start a new session.",
       });
     }
 
     // Find active session - also check by endTime match
     let session = await MiningSession.findOne({
       user: user._id,
-      status: 'active',
+      status: "active",
     }).sort({ createdAt: -1 });
 
     // If no active session found, try finding by endTime
@@ -472,19 +503,19 @@ const boostMining = async (req, res) => {
       session = await MiningSession.findOne({
         user: user._id,
         endTime: { $gt: new Date() },
-        status: { $ne: 'cancelled' },
+        status: { $ne: "cancelled" },
       }).sort({ createdAt: -1 });
-      
+
       // Update status to active if found
-      if (session && session.status !== 'active') {
-        session.status = 'active';
+      if (session && session.status !== "active") {
+        session.status = "active";
       }
     }
 
     if (!session) {
       return res.status(400).json({
         success: false,
-        message: 'Mining session not found. Please restart mining.',
+        message: "Mining session not found. Please restart mining.",
       });
     }
 
@@ -501,7 +532,8 @@ const boostMining = async (req, res) => {
     }
 
     // Check wallet balance (mining wallet first, then purchase wallet)
-    const totalAvailable = (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0);
+    const totalAvailable =
+      (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0);
     if (totalAvailable < boostCost) {
       return res.status(400).json({
         success: false,
@@ -513,7 +545,7 @@ const boostMining = async (req, res) => {
     let remainingCost = boostCost;
     const miningBefore = wallet.miningBalance || 0;
     const purchaseBefore = wallet.purchaseBalance || 0;
-    
+
     if (miningBefore >= remainingCost) {
       wallet.miningBalance = miningBefore - remainingCost;
     } else {
@@ -523,17 +555,21 @@ const boostMining = async (req, res) => {
     }
 
     // Also update user's totalCoins for consistency
-    user.miningStats.totalCoins = (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0);
+    user.miningStats.totalCoins =
+      (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0);
 
-    if (boostType === 'speed') {
+    if (boostType === "speed") {
       // Increase mining rate by 50%
       session.totalRate = (session.totalRate || 0.25) * 1.5;
-      session.expectedCoins = session.totalRate * (settings.miningCycleDuration || 24);
+      session.expectedCoins =
+        session.totalRate * (settings.miningCycleDuration || 24);
     } else {
       // Reduce remaining time by 4 hours
       const currentEndTime = new Date(session.endTime);
-      const newEndTime = new Date(currentEndTime.getTime() - 4 * 60 * 60 * 1000);
-      
+      const newEndTime = new Date(
+        currentEndTime.getTime() - 4 * 60 * 60 * 1000,
+      );
+
       // Don't let it go below current time + 10 minutes
       const minEndTime = new Date(Date.now() + 10 * 60 * 1000);
       session.endTime = newEndTime > minEndTime ? newEndTime : minEndTime;
@@ -545,67 +581,82 @@ const boostMining = async (req, res) => {
     await user.save();
 
     // Create transaction record for boost purchase
-    const boostDescription = boostType === 'speed' 
-      ? 'Speed Boost - Mining rate increased by 50%' 
-      : 'Time Boost - Mining duration reduced by 4 hours';
-    
+    const boostDescription =
+      boostType === "speed"
+        ? "Speed Boost - Mining rate increased by 50%"
+        : "Time Boost - Mining duration reduced by 4 hours";
+
     await Transaction.create({
       user: user._id,
-      type: 'purchase',
+      type: "purchase",
       amount: boostCost,
       coins: -boostCost, // Negative because coins are spent
-      currency: 'COIN',
-      status: 'completed',
-      paymentMethod: 'wallet',
+      currency: "COIN",
+      status: "completed",
+      paymentMethod: "wallet",
       description: boostDescription,
       transactionId: `BOOST-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       balanceAfter: (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0),
       processedAt: new Date(),
       metadata: {
-        walletType: 'auto',
+        walletType: "auto",
         boostType: boostType,
         sessionId: session._id,
       },
     });
 
-    console.log(`Boost applied: ${boostType} for user ${user._id}, cost: ${boostCost}`);
+    console.log(
+      `Boost applied: ${boostType} for user ${user._id}, cost: ${boostCost}`,
+    );
 
     // Emit wallet update via Socket.io for real-time update
-    const io = req.app.get('io');
-    const connectedUsers = req.app.get('connectedUsers');
+    const io = req.app.get("io");
+    const connectedUsers = req.app.get("connectedUsers");
     const socketId = connectedUsers?.get(user._id.toString());
-    
+
     if (io && socketId) {
       const walletData = {
         miningBalance: wallet.miningBalance || 0,
         purchaseBalance: wallet.purchaseBalance || 0,
         referralBalance: wallet.referralBalance || 0,
-        totalBalance: (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0) + (wallet.referralBalance || 0),
+        totalBalance:
+          (wallet.miningBalance || 0) +
+          (wallet.purchaseBalance || 0) +
+          (wallet.referralBalance || 0),
         lastUpdated: new Date().toISOString(),
-        reason: 'boost_purchase',
+        reason: "boost_purchase",
       };
-      io.to(socketId).emit('wallet-update', walletData);
+      io.to(socketId).emit("wallet-update", walletData);
       console.log(`Emitted wallet-update to user ${user._id}`);
     }
 
     res.status(200).json({
       success: true,
-      message: `Mining boosted! ${boostType === 'speed' ? 'Rate increased by 50%' : 'Time reduced by 4 hours'}`,
+      message: `Mining boosted! ${boostType === "speed" ? "Rate increased by 50%" : "Time reduced by 4 hours"}`,
       newExpectedCoins: session.expectedCoins,
       newEndTime: session.endTime,
       newRate: session.totalRate,
       coinsSpent: boostCost,
-      remainingCoins: (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0),
+      remainingCoins:
+        (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0),
       wallets: {
         mining: wallet.miningBalance || 0,
         purchase: wallet.purchaseBalance || 0,
         referral: wallet.referralBalance || 0,
-        total: (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0) + (wallet.referralBalance || 0),
+        total:
+          (wallet.miningBalance || 0) +
+          (wallet.purchaseBalance || 0) +
+          (wallet.referralBalance || 0),
       },
     });
   } catch (error) {
-    console.error('Boost Mining Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to boost mining: ' + error.message });
+    console.error("Boost Mining Error:", error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "Failed to boost mining: " + error.message,
+      });
   }
 };
 
@@ -619,12 +670,15 @@ const getRewardsBreakdown = async (req, res) => {
 
     const baseRate = settings.miningRate || 0.25;
     const cycleDuration = settings.miningCycleDuration || 24;
-    
+
     // Calculate all bonus rates
     const activeReferrals = user.referralStats?.activeCount || 0;
     const referralBoostPercent = Math.min(activeReferrals * 20, 100); // 20% per referral, max 100%
     const levelBoostPercent = ((user.miningStats?.level || 1) - 1) * 5; // 5% per level
-    const streakBoostPercent = Math.min((user.miningStats?.streak || 0) * 2, 20); // 2% per day, max 20%
+    const streakBoostPercent = Math.min(
+      (user.miningStats?.streak || 0) * 2,
+      20,
+    ); // 2% per day, max 20%
 
     const referralBoost = baseRate * (referralBoostPercent / 100);
     const levelBoost = baseRate * (levelBoostPercent / 100);
@@ -662,8 +716,10 @@ const getRewardsBreakdown = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get Rewards Breakdown Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get rewards breakdown' });
+    console.error("Get Rewards Breakdown Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get rewards breakdown" });
   }
 };
 
