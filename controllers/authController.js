@@ -15,7 +15,7 @@ const googleClientIds = [
 ].filter(Boolean);
 
 const googleClient = new OAuth2Client();
-
+    
 // Generate JWT Token
 const generateJWT = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {

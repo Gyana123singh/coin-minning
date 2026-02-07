@@ -1,4 +1,4 @@
-const Settings = require('../../models/Settings');
+const Settings = require("../../models/Settings");
 
 // @desc    Get all settings
 // @route   GET /api/admin/settings
@@ -12,8 +12,8 @@ exports.getAllSettings = async (req, res) => {
       settings,
     });
   } catch (error) {
-    console.error('Get All Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Get All Settings Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -31,28 +31,44 @@ exports.updateAppSettings = async (req, res) => {
     } = req.body;
 
     if (appName !== undefined) {
-      await Settings.setSetting('appName', appName, 'Application name');
+      await Settings.setSetting("appName", appName, "Application name");
     }
     if (appVersion !== undefined) {
-      await Settings.setSetting('appVersion', appVersion, 'Application version');
+      await Settings.setSetting(
+        "appVersion",
+        appVersion,
+        "Application version",
+      );
     }
     if (supportEmail !== undefined) {
-      await Settings.setSetting('supportEmail', supportEmail, 'Support email address');
+      await Settings.setSetting(
+        "supportEmail",
+        supportEmail,
+        "Support email address",
+      );
     }
     if (maintenanceMode !== undefined) {
-      await Settings.setSetting('maintenanceMode', maintenanceMode, 'Maintenance mode toggle');
+      await Settings.setSetting(
+        "maintenanceMode",
+        maintenanceMode,
+        "Maintenance mode toggle",
+      );
     }
     if (maintenanceMessage !== undefined) {
-      await Settings.setSetting('maintenanceMessage', maintenanceMessage, 'Maintenance mode message');
+      await Settings.setSetting(
+        "maintenanceMessage",
+        maintenanceMessage,
+        "Maintenance mode message",
+      );
     }
 
     res.status(200).json({
       success: true,
-      message: 'App settings updated successfully',
+      message: "App settings updated successfully",
     });
   } catch (error) {
-    console.error('Update App Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Update App Settings Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -63,15 +79,15 @@ exports.updateSocialLinks = async (req, res) => {
   try {
     const { socialLinks } = req.body;
 
-    await Settings.setSetting('socialLinks', socialLinks, 'Social media links');
+    await Settings.setSetting("socialLinks", socialLinks, "Social media links");
 
     res.status(200).json({
       success: true,
-      message: 'Social links updated successfully',
+      message: "Social links updated successfully",
     });
   } catch (error) {
-    console.error('Update Social Links Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Update Social Links Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -87,8 +103,8 @@ exports.getSocialLinks = async (req, res) => {
       socialLinks: settings.socialLinks,
     });
   } catch (error) {
-    console.error('Get Social Links Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Get Social Links Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -97,29 +113,37 @@ exports.getSocialLinks = async (req, res) => {
 // @access  Private/Admin
 exports.updateWithdrawalSettings = async (req, res) => {
   try {
-    const {
-      minWithdrawal,
-      coinValue,
-      withdrawalCooldown,
-    } = req.body;
+    const { minWithdrawal, coinValue, withdrawalCooldown } = req.body;
 
     if (minWithdrawal !== undefined) {
-      await Settings.setSetting('minWithdrawal', minWithdrawal, 'Minimum withdrawal amount');
+      await Settings.setSetting(
+        "minWithdrawal",
+        minWithdrawal,
+        "Minimum withdrawal amount",
+      );
     }
     if (coinValue !== undefined) {
-      await Settings.setSetting('coinValue', coinValue, 'Coin value in currency');
+      await Settings.setSetting(
+        "coinValue",
+        coinValue,
+        "Coin value in currency",
+      );
     }
     if (withdrawalCooldown !== undefined) {
-      await Settings.setSetting('withdrawalCooldown', withdrawalCooldown, 'Withdrawal cooldown in hours');
+      await Settings.setSetting(
+        "withdrawalCooldown",
+        withdrawalCooldown,
+        "Withdrawal cooldown in hours",
+      );
     }
 
     res.status(200).json({
       success: true,
-      message: 'Withdrawal settings updated successfully',
+      message: "Withdrawal settings updated successfully",
     });
   } catch (error) {
-    console.error('Update Withdrawal Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Update Withdrawal Settings Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -128,25 +152,30 @@ exports.updateWithdrawalSettings = async (req, res) => {
 // @access  Private/Admin
 exports.updateKYCSettings = async (req, res) => {
   try {
-    const {
-      miningSessionsRequired,
-      ownershipDaysRequired,
-    } = req.body;
+    const { miningSessionsRequired, ownershipDaysRequired } = req.body;
 
     if (miningSessionsRequired !== undefined) {
-      await Settings.setSetting('miningSessionsRequired', miningSessionsRequired, 'Mining sessions required for KYC');
+      await Settings.setSetting(
+        "miningSessionsRequired",
+        miningSessionsRequired,
+        "Mining sessions required for KYC",
+      );
     }
     if (ownershipDaysRequired !== undefined) {
-      await Settings.setSetting('ownershipDaysRequired', ownershipDaysRequired, 'Days required for ownership');
+      await Settings.setSetting(
+        "ownershipDaysRequired",
+        ownershipDaysRequired,
+        "Days required for ownership",
+      );
     }
 
     res.status(200).json({
       success: true,
-      message: 'KYC settings updated successfully',
+      message: "KYC settings updated successfully",
     });
   } catch (error) {
-    console.error('Update KYC Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Update KYC Settings Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -155,29 +184,37 @@ exports.updateKYCSettings = async (req, res) => {
 // @access  Private/Admin
 exports.updateTransferSettings = async (req, res) => {
   try {
-    const {
-      minTransfer,
-      maxTransfer,
-      transferFeePercent,
-    } = req.body;
+    const { minTransfer, maxTransfer, transferFeePercent } = req.body;
 
     if (minTransfer !== undefined) {
-      await Settings.setSetting('minTransfer', minTransfer, 'Minimum transfer amount');
+      await Settings.setSetting(
+        "minTransfer",
+        minTransfer,
+        "Minimum transfer amount",
+      );
     }
     if (maxTransfer !== undefined) {
-      await Settings.setSetting('maxTransfer', maxTransfer, 'Maximum transfer amount');
+      await Settings.setSetting(
+        "maxTransfer",
+        maxTransfer,
+        "Maximum transfer amount",
+      );
     }
     if (transferFeePercent !== undefined) {
-      await Settings.setSetting('transferFeePercent', transferFeePercent, 'Transfer fee percentage');
+      await Settings.setSetting(
+        "transferFeePercent",
+        transferFeePercent,
+        "Transfer fee percentage",
+      );
     }
 
     res.status(200).json({
       success: true,
-      message: 'Transfer settings updated successfully',
+      message: "Transfer settings updated successfully",
     });
   } catch (error) {
-    console.error('Update Transfer Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Update Transfer Settings Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -188,17 +225,39 @@ exports.updateCheckinSettings = async (req, res) => {
   try {
     const { dailyCheckinBonuses } = req.body;
 
-    if (dailyCheckinBonuses && Array.isArray(dailyCheckinBonuses)) {
-      await Settings.setSetting('dailyCheckinBonuses', dailyCheckinBonuses, 'Daily check-in bonus array');
+    // ✅ VALIDATION: must be an array of exactly 7 values
+    if (
+      !Array.isArray(dailyCheckinBonuses) ||
+      dailyCheckinBonuses.length !== 7
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Must provide exactly 7 days bonuses",
+      });
     }
+
+    // ✅ Optional: ensure all values are valid numbers (and not negative)
+    const cleaned = dailyCheckinBonuses.map((v) => Number(v));
+    if (cleaned.some((v) => Number.isNaN(v) || v < 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "All bonus values must be valid non-negative numbers",
+      });
+    }
+
+    await Settings.setSetting(
+      "dailyCheckinBonuses",
+      cleaned,
+      "Daily check-in bonus array",
+    );
 
     res.status(200).json({
       success: true,
-      message: 'Check-in settings updated successfully',
+      message: "Check-in settings updated successfully",
     });
   } catch (error) {
-    console.error('Update Check-in Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Update Check-in Settings Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -209,18 +268,26 @@ exports.toggleMaintenance = async (req, res) => {
   try {
     const { enabled, message } = req.body;
 
-    await Settings.setSetting('maintenanceMode', enabled, 'Maintenance mode toggle');
+    await Settings.setSetting(
+      "maintenanceMode",
+      enabled,
+      "Maintenance mode toggle",
+    );
     if (message) {
-      await Settings.setSetting('maintenanceMessage', message, 'Maintenance mode message');
+      await Settings.setSetting(
+        "maintenanceMessage",
+        message,
+        "Maintenance mode message",
+      );
     }
 
     res.status(200).json({
       success: true,
-      message: `Maintenance mode ${enabled ? 'enabled' : 'disabled'}`,
+      message: `Maintenance mode ${enabled ? "enabled" : "disabled"}`,
     });
   } catch (error) {
-    console.error('Toggle Maintenance Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Toggle Maintenance Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -231,10 +298,10 @@ exports.bulkUpdateSettings = async (req, res) => {
   try {
     const { settings } = req.body;
 
-    if (!settings || typeof settings !== 'object') {
+    if (!settings || typeof settings !== "object") {
       return res.status(400).json({
         success: false,
-        message: 'Please provide settings object',
+        message: "Please provide settings object",
       });
     }
 
@@ -245,10 +312,10 @@ exports.bulkUpdateSettings = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Settings updated successfully',
+      message: "Settings updated successfully",
     });
   } catch (error) {
-    console.error('Bulk Update Settings Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Bulk Update Settings Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

@@ -1,23 +1,20 @@
 const router = require("express").Router();
-const feedController  = require("../../controllers/admin/communityFeedController");
+const feedController = require("../../controllers/admin/communityFeedController");
 
-
-
-// ================= ADMIN =================
-router.post("/feed", feedController.createFeedPost);
-router.put("/feed/:id", feedController.updateFeedPost);
-router.delete("/feed/:id", feedController.deleteFeedPost);
-router.patch("/feed/:id/toggle", feedController.toggleFeedPostVisibility);
+// ADMIN
+router.post("/", feedController.createFeedPost);
+router.put("/:id", feedController.updateFeedPost);
+router.delete("/:id", feedController.deleteFeedPost);
+router.patch("/:id/toggle", feedController.toggleFeedPostVisibility);
 router.patch(
-  "/feed/:postId/comment/:commentId/toggle",
-
+  "/:postId/comment/:commentId/toggle",
   feedController.toggleFeedCommentVisibility,
 );
-router.get("/feed", feedController.getAllFeedPostsAdmin);
+router.get("/", feedController.getAllFeedPostsAdmin);
 
-// ================= USER APP =================
-router.get("/feed", feedController.getPublicFeed);
-router.post("/feed/:id/like", feedController.toggleLikeFeedPost);
-router.post("/feed/:id/comment", feedController.addFeedComment);
+// USER
+router.get("/public", feedController.getPublicFeed);
+router.post("/:id/like", feedController.toggleLikeFeedPost);
+router.post("/:id/comment", feedController.addFeedComment);
 
 module.exports = router;
