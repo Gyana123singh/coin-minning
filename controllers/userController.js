@@ -553,65 +553,247 @@ const getDashboard = async (req, res) => {
 // @desc    Redeem promo code
 // @route   POST /api/users/redeem-code
 // @access  Private
+
+// const redeemPromoCode = async (req, res) => {
+//   try {
+//     const { code } = req.body;
+//     const user = await User.findById(req.user._id);
+
+//     if (!code) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Please enter a code" });
+//     }
+
+//     // This would be connected to a PromoCode model in production
+//     // For now, just simulate some codes
+//     const validCodes = {
+//       WELCOME100: { coins: 100, description: "Welcome bonus" },
+//       BONUS50: { coins: 50, description: "Bonus code" },
+//     };
+
+//     const promo = validCodes[code.toUpperCase()];
+
+//     if (!promo) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Invalid or expired code" });
+//     }
+
+//     // Check if already used (would check against user's usedCodes array)
+//     if (user.usedPromoCodes?.includes(code.toUpperCase())) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Code already used" });
+//     }
+
+//     // Add coins
+//     user.miningStats.totalCoins += promo.coins;
+//     user.usedPromoCodes = user.usedPromoCodes || [];
+//     user.usedPromoCodes.push(code.toUpperCase());
+//     await user.save();
+
+//     // Create transaction
+//     await Transaction.create({
+//       user: req.user._id,
+//       type: "bonus",
+//       amount: promo.coins,
+//       coins: promo.coins,
+//       currency: "COIN",
+//       status: "completed",
+//       description: `Promo code: ${code.toUpperCase()} - ${promo.description}`,
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: `Code redeemed! You received ${promo.coins} coins.`,
+//       coins: promo.coins,
+//       totalCoins: user.miningStats.totalCoins,
+//     });
+//   } catch (error) {
+//     console.error("Redeem Code Error:", error);
+//     res.status(500).json({ success: false, message: "Failed to redeem code" });
+//   }
+// };
+
+// @desc    Redeem promo code
+// @route   POST /api/users/redeem-code
+// @access  Private
 const redeemPromoCode = async (req, res) => {
   try {
     const { code } = req.body;
     const user = await User.findById(req.user._id);
 
     if (!code) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please enter a code" });
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a promo code",
+      });
     }
 
-    // This would be connected to a PromoCode model in production
-    // For now, just simulate some codes
-    const validCodes = {
-      WELCOME100: { coins: 100, description: "Welcome bonus" },
-      BONUS50: { coins: 50, description: "Bonus code" },
-    };
-
-    const promo = validCodes[code.toUpperCase()];
+    const promo = await PromoCode.findOne({ code: code.toUpperCase() });
 
     if (!promo) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid or expired code" });
+      return res.status(404).json({
+        success: false,
+        message: "Invalid promo code",
+      });
     }
 
-    // Check if already used (would check against user's usedCodes array)
-    if (user.usedPromoCodes?.includes(code.toUpperCase())) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Code already used" });
+    // Check if promo is valid (status, dates, maxUses)
+    if (!promo.isValid()) {
+      return res.status(400).json({
+        success: false,
+        message: "This promo code is expired or inactive",
+      });
     }
 
-    // Add coins
-    user.miningStats.totalCoins += promo.coins;
+    // Check if user can use this code (per-user limit)
+    if (!promo.canUserUse(user._id)) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already used this promo code or reached the limit",
+      });
+    }
+
+    // Check min mining days requirement
+    if (promo.minMiningDays > 0) {
+      const daysActive = user.ownershipProgress?.daysActive || 0;
+      if (daysActive < promo.minMiningDays) {
+        return res.status(400).json({
+          success: false,
+          message: `You need at least ${promo.minMiningDays} mining days to use this code`,
+        });
+      }
+    }
+
+    // Check target users
+    if (promo.targetUsers === "new_users") {
+      const isNewUser = (user.ownershipProgress?.miningSessions || 0) === 0;
+      if (!isNewUser) {
+        return res.status(400).json({
+          success: false,
+          message: "This promo code is only for new users",
+        });
+      }
+    }
+
+    if (promo.targetUsers === "kyc_verified") {
+      if (user.kycStatus !== "approved") {
+        return res.status(400).json({
+          success: false,
+          message: "This promo code is only for KYC verified users",
+        });
+      }
+    }
+
+    if (promo.targetUsers === "specific") {
+      const isAllowed = promo.specificUsers.some(
+        (u) => u.toString() === user._id.toString(),
+      );
+      if (!isAllowed) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not eligible to use this promo code",
+        });
+      }
+    }
+
+    // Get or create wallet
+    let wallet = await Wallet.findOne({ user: user._id });
+    if (!wallet) {
+      wallet = await Wallet.create({
+        user: user._id,
+        miningBalance: user.miningStats?.totalCoins || 0,
+        totalMined: user.miningStats?.totalMined || 0,
+      });
+    }
+
+    let rewardDescription = "";
+    let rewardAmount = 0;
+
+    // Apply reward based on type
+    if (promo.rewardType === "coins") {
+      rewardAmount = promo.rewardValue;
+
+      await wallet.addCoins(rewardAmount, "mining");
+
+      user.miningStats.totalCoins += rewardAmount;
+
+      rewardDescription = `Promo code ${promo.code} reward: ${rewardAmount} coins`;
+    } else if (promo.rewardType === "boost") {
+      // Example: Apply boost by extending mining end time or setting boost flags
+      // You can customize this logic based on your mining system
+      const hours = promo.boostDuration || 24;
+
+      rewardDescription = `Mining boost applied for ${hours} hours with multiplier ${promo.boostMultiplier}`;
+
+      // (Optional) You can store boost info on user if you have such fields
+      // user.miningStats.boostUntil = new Date(Date.now() + hours * 60 * 60 * 1000);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "This promo reward type is not supported yet",
+      });
+    }
+
+    // Mark promo as used
+    promo.usedCount += 1;
+    promo.usedBy.push({
+      user: user._id,
+      rewardGiven: promo.rewardValue,
+    });
+    await promo.save();
+
+    // Mark user used this code
     user.usedPromoCodes = user.usedPromoCodes || [];
-    user.usedPromoCodes.push(code.toUpperCase());
+    user.usedPromoCodes.push(promo.code);
     await user.save();
 
-    // Create transaction
-    await Transaction.create({
-      user: req.user._id,
-      type: "bonus",
-      amount: promo.coins,
-      coins: promo.coins,
-      currency: "COIN",
-      status: "completed",
-      description: `Promo code: ${code.toUpperCase()} - ${promo.description}`,
+    // Create transaction (for coins only)
+    if (promo.rewardType === "coins") {
+      await Transaction.create({
+        user: user._id,
+        type: "bonus",
+        amount: rewardAmount,
+        coins: rewardAmount,
+        currency: "COIN",
+        status: "completed",
+        description: `Redeemed promo code: ${promo.code}`,
+        metadata: {
+          walletType: "mining",
+        },
+        balanceAfter: wallet.totalBalance,
+      });
+    }
+
+    // Send notification
+    await Notification.create({
+      user: user._id,
+      type: "reward",
+      title: "Promo Code Redeemed 🎉",
+      message: rewardDescription,
     });
 
     res.status(200).json({
       success: true,
-      message: `Code redeemed! You received ${promo.coins} coins.`,
-      coins: promo.coins,
-      totalCoins: user.miningStats.totalCoins,
+      message: "Promo code redeemed successfully",
+      reward: {
+        type: promo.rewardType,
+        value: promo.rewardValue,
+        description: rewardDescription,
+      },
+      wallet: {
+        totalBalance: wallet.totalBalance,
+        available: wallet.availableCoins,
+      },
     });
   } catch (error) {
-    console.error("Redeem Code Error:", error);
-    res.status(500).json({ success: false, message: "Failed to redeem code" });
+    console.error("Redeem Promo Code Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to redeem promo code",
+    });
   }
 };
 
