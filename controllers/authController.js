@@ -177,13 +177,14 @@ const signup = async (req, res) => {
     };
 
     // Handle referral if code provided
-
     let referrer = null;
-    if (referralCode) {
-      referrer = await User.findOne({
-        referralCode: referralCode.toUpperCase(),
-      });
 
+    if (referralCode && referralCode.trim() !== "") {
+      const cleanCode = referralCode.trim().toUpperCase();
+
+      referrer = await User.findOne({ referralCode: cleanCode });
+
+      // ❌ Invalid / fake code
       if (!referrer) {
         return res.status(400).json({
           success: false,
@@ -191,7 +192,7 @@ const signup = async (req, res) => {
         });
       }
 
-      // 🚫 Block self-referral (same email)
+      // ❌ Block self-referral (same email)
       if (referrer.email.toLowerCase() === email.toLowerCase()) {
         return res.status(400).json({
           success: false,
@@ -199,7 +200,7 @@ const signup = async (req, res) => {
         });
       }
 
-      // ✅ Valid referral
+      // ✅ Valid referral from another user
       userData.referredBy = referrer._id;
     }
 
@@ -572,13 +573,15 @@ const googleAuth = async (req, res) => {
         "miningStats.totalCoins": settings.signupBonus || 100,
       };
 
-      // Handle referral if code provided
+      // Handle referral if code provided (ONLY for new users)
       let referrer = null;
-      if (referralCode) {
-        referrer = await User.findOne({
-          referralCode: referralCode.toUpperCase(),
-        });
 
+      if (referralCode && referralCode.trim() !== "") {
+        const cleanCode = referralCode.trim().toUpperCase();
+
+        referrer = await User.findOne({ referralCode: cleanCode });
+
+        // ❌ Invalid / fake code
         if (!referrer) {
           return res.status(400).json({
             success: false,
@@ -586,7 +589,7 @@ const googleAuth = async (req, res) => {
           });
         }
 
-        // 🚫 Block self-referral (same email)
+        // ❌ Block self-referral (same email)
         if (referrer.email.toLowerCase() === email.toLowerCase()) {
           return res.status(400).json({
             success: false,
@@ -594,7 +597,7 @@ const googleAuth = async (req, res) => {
           });
         }
 
-        // ✅ Valid referral
+        // ✅ Valid referral from another user
         userData.referredBy = referrer._id;
       }
 
