@@ -177,14 +177,30 @@ const signup = async (req, res) => {
     };
 
     // Handle referral if code provided
+
     let referrer = null;
     if (referralCode) {
       referrer = await User.findOne({
         referralCode: referralCode.toUpperCase(),
       });
-      if (referrer) {
-        userData.referredBy = referrer._id;
+
+      if (!referrer) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid referral code",
+        });
       }
+
+      // 🚫 Block self-referral (same email)
+      if (referrer.email.toLowerCase() === email.toLowerCase()) {
+        return res.status(400).json({
+          success: false,
+          message: "You cannot use your own referral code",
+        });
+      }
+
+      // ✅ Valid referral
+      userData.referredBy = referrer._id;
     }
 
     const user = await User.create(userData);
@@ -562,9 +578,24 @@ const googleAuth = async (req, res) => {
         referrer = await User.findOne({
           referralCode: referralCode.toUpperCase(),
         });
-        if (referrer) {
-          userData.referredBy = referrer._id;
+
+        if (!referrer) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid referral code",
+          });
         }
+
+        // 🚫 Block self-referral (same email)
+        if (referrer.email.toLowerCase() === email.toLowerCase()) {
+          return res.status(400).json({
+            success: false,
+            message: "You cannot use your own referral code",
+          });
+        }
+
+        // ✅ Valid referral
+        userData.referredBy = referrer._id;
       }
 
       user = await User.create(userData);
