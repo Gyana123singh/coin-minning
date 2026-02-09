@@ -12,9 +12,4 @@ router.patch(
 );
 router.get("/", feedController.getAllFeedPostsAdmin);
 
-// USER
-router.get("/public", feedController.getPublicFeed);
-router.post("/:id/like", feedController.toggleLikeFeedPost);
-router.post("/:id/comment", feedController.addFeedComment);
-
 module.exports = router;

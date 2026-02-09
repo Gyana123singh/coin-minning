@@ -179,6 +179,7 @@ app.use("/api/notifications", require("./routes/notificationRoutes"));
 app.use("/api/settings", require("./routes/settingsRoutes"));
 app.use("/api/wallet", require("./routes/walletRoutes"));
 app.use("/api/coins", require("./routes/coinRoutes"));
+app.use("/api/community", require("./routes/communityFeedRoutes"));
 
 // Admin Routes
 app.use("/api/admin", require("./routes/admin"));

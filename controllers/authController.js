@@ -1,11 +1,16 @@
-const User = require('../models/User');
-const OTP = require('../models/OTP');
-const Settings = require('../models/Settings');
-const Notification = require('../models/Notification');
-const jwt = require('jsonwebtoken');
-const { OAuth2Client } = require('google-auth-library');
-const { sendOTPEmail, sendWelcomeEmail } = require('../utils/sendEmail');
-const { generateOTP, generateReferralCode, sanitizeUser, calculateReferralReward } = require('../utils/helpers');
+const User = require("../models/User");
+const OTP = require("../models/OTP");
+const Settings = require("../models/Settings");
+const Notification = require("../models/Notification");
+const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
+const { sendOTPEmail, sendWelcomeEmail } = require("../utils/sendEmail");
+const {
+  generateOTP,
+  generateReferralCode,
+  sanitizeUser,
+  calculateReferralReward,
+} = require("../utils/helpers");
 
 // Google OAuth clients - accept tokens from Web, Android, and iOS
 const googleClientIds = [
@@ -15,11 +20,11 @@ const googleClientIds = [
 ].filter(Boolean);
 
 const googleClient = new OAuth2Client();
-    
+
 // Generate JWT Token
 const generateJWT = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '30d',
+    expiresIn: process.env.JWT_EXPIRE || "30d",
   });
 };
 
@@ -31,21 +36,30 @@ const sendOTP = async (req, res) => {
     const { email, purpose } = req.body;
 
     if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
     }
 
-    const validPurposes = ['signup', 'login', 'reset-password'];
-    const otpPurpose = validPurposes.includes(purpose) ? purpose : 'login';
+    const validPurposes = ["signup", "login", "reset-password"];
+    const otpPurpose = validPurposes.includes(purpose) ? purpose : "login";
 
     // Check if user exists for login/reset
     const existingUser = await User.findOne({ email });
-    
-    if (otpPurpose === 'signup' && existingUser) {
-      return res.status(400).json({ success: false, message: 'Email already registered' });
+
+    if (otpPurpose === "signup" && existingUser) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already registered" });
     }
-    
-    if ((otpPurpose === 'login' || otpPurpose === 'reset-password') && !existingUser) {
-      return res.status(404).json({ success: false, message: 'No account found with this email' });
+
+    if (
+      (otpPurpose === "login" || otpPurpose === "reset-password") &&
+      !existingUser
+    ) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No account found with this email" });
     }
 
     // Delete existing OTPs for this email
@@ -69,8 +83,8 @@ const sendOTP = async (req, res) => {
       message: `OTP sent to ${email}`,
     });
   } catch (error) {
-    console.error('Send OTP Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to send OTP' });
+    console.error("Send OTP Error:", error);
+    res.status(500).json({ success: false, message: "Failed to send OTP" });
   }
 };
 
@@ -82,13 +96,17 @@ const verifyOTP = async (req, res) => {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return res.status(400).json({ success: false, message: 'Email and OTP are required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email and OTP are required" });
     }
 
     const otpRecord = await OTP.findOne({ email, otp });
 
     if (!otpRecord) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired OTP" });
     }
 
     // Mark OTP as verified (don't delete yet, needed for signup/login completion)
@@ -97,12 +115,12 @@ const verifyOTP = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'OTP verified successfully',
+      message: "OTP verified successfully",
       purpose: otpRecord.purpose,
     });
   } catch (error) {
-    console.error('Verify OTP Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to verify OTP' });
+    console.error("Verify OTP Error:", error);
+    res.status(500).json({ success: false, message: "Failed to verify OTP" });
   }
 };
 
@@ -114,19 +132,30 @@ const signup = async (req, res) => {
     const { email, name, password, referralCode } = req.body;
 
     if (!email || !name || !password) {
-      return res.status(400).json({ success: false, message: 'Email, name, and password are required' });
+      return res.status(400).json({
+        success: false,
+        message: "Email, name, and password are required",
+      });
     }
 
     // Check if OTP was verified
-    const otpRecord = await OTP.findOne({ email, purpose: 'signup', verified: true });
+    const otpRecord = await OTP.findOne({
+      email,
+      purpose: "signup",
+      verified: true,
+    });
     if (!otpRecord) {
-      return res.status(400).json({ success: false, message: 'Please verify your email first' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Please verify your email first" });
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Email already registered' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already registered" });
     }
 
     // Get settings for bonus amounts
@@ -144,13 +173,15 @@ const signup = async (req, res) => {
       password,
       referralCode: userReferralCode,
       isEmailVerified: true,
-      'miningStats.totalCoins': settings.signupBonus || 100,
+      "miningStats.totalCoins": settings.signupBonus || 100,
     };
 
     // Handle referral if code provided
     let referrer = null;
     if (referralCode) {
-      referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
+      referrer = await User.findOne({
+        referralCode: referralCode.toUpperCase(),
+      });
       if (referrer) {
         userData.referredBy = referrer._id;
       }
@@ -164,13 +195,12 @@ const signup = async (req, res) => {
       const directReward = calculateReferralReward(true, settings);
       referrer.miningStats.totalCoins += directReward;
       referrer.referralStats.totalCount += 1;
-      referrer.referralStats.activeCount += 1;
       referrer.referralStats.totalEarned += directReward;
       referrer.referralStats.directReferrals.push(user._id);
       await referrer.save();
 
       // Add to referrer's REFERRAL WALLET
-      const Wallet = require('../models/Wallet');
+      const Wallet = require("../models/Wallet");
       let referrerWallet = await Wallet.findOne({ user: referrer._id });
       if (!referrerWallet) {
         referrerWallet = await Wallet.create({ user: referrer._id });
@@ -178,26 +208,26 @@ const signup = async (req, res) => {
       await referrerWallet.addReferralCoins(directReward);
 
       // Create referral record
-      const Referral = require('../models/Referral');
+      const Referral = require("../models/Referral");
       await Referral.create({
         referrer: referrer._id,
         referred: user._id,
-        type: 'direct',
+        type: "direct",
         coinsEarned: directReward,
       });
 
       // Create transaction for referral bonus
-      const Transaction = require('../models/Transaction');
+      const Transaction = require("../models/Transaction");
       await Transaction.create({
         user: referrer._id,
-        type: 'referral',
+        type: "referral",
         amount: directReward,
         coins: directReward,
-        currency: 'COIN',
-        status: 'completed',
+        currency: "COIN",
+        status: "completed",
         description: `Direct referral bonus from ${user.name}`,
         metadata: {
-          walletType: 'referral',
+          walletType: "referral",
           referredUserId: user._id,
         },
       });
@@ -205,8 +235,8 @@ const signup = async (req, res) => {
       // Notify referrer
       await Notification.create({
         user: referrer._id,
-        type: 'referral',
-        title: 'New Referral!',
+        type: "referral",
+        title: "New Referral!",
         message: `${name} joined using your referral code. You earned ${directReward} coins in your Referral Wallet!`,
       });
 
@@ -221,9 +251,13 @@ const signup = async (req, res) => {
           await grandReferrer.save();
 
           // Add to grand referrer's REFERRAL WALLET
-          let grandReferrerWallet = await Wallet.findOne({ user: grandReferrer._id });
+          let grandReferrerWallet = await Wallet.findOne({
+            user: grandReferrer._id,
+          });
           if (!grandReferrerWallet) {
-            grandReferrerWallet = await Wallet.create({ user: grandReferrer._id });
+            grandReferrerWallet = await Wallet.create({
+              user: grandReferrer._id,
+            });
           }
           await grandReferrerWallet.addReferralCoins(indirectReward);
 
@@ -231,21 +265,21 @@ const signup = async (req, res) => {
           await Referral.create({
             referrer: grandReferrer._id,
             referred: user._id,
-            type: 'indirect',
+            type: "indirect",
             coinsEarned: indirectReward,
           });
 
           // Create transaction for indirect referral bonus
           await Transaction.create({
             user: grandReferrer._id,
-            type: 'referral',
+            type: "referral",
             amount: indirectReward,
             coins: indirectReward,
-            currency: 'COIN',
-            status: 'completed',
+            currency: "COIN",
+            status: "completed",
             description: `Indirect referral bonus from ${user.name}`,
             metadata: {
-              walletType: 'referral',
+              walletType: "referral",
               referredUserId: user._id,
               indirect: true,
             },
@@ -254,8 +288,8 @@ const signup = async (req, res) => {
           // Notify grand referrer
           await Notification.create({
             user: grandReferrer._id,
-            type: 'referral',
-            title: 'Indirect Referral Bonus!',
+            type: "referral",
+            title: "Indirect Referral Bonus!",
             message: `Your referral brought a new user. You earned ${indirectReward} coins in your Referral Wallet!`,
           });
         }
@@ -272,18 +306,20 @@ const signup = async (req, res) => {
     try {
       await sendWelcomeEmail(email, name, userReferralCode);
     } catch (emailError) {
-      console.error('Welcome email failed:', emailError);
+      console.error("Welcome email failed:", emailError);
     }
 
     res.status(201).json({
       success: true,
-      message: 'Account created successfully',
+      message: "Account created successfully",
       token,
       user: sanitizeUser(user),
     });
   } catch (error) {
-    console.error('Signup Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to create account' });
+    console.error("Signup Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to create account" });
   }
 };
 
@@ -295,24 +331,32 @@ const login = async (req, res) => {
     const { email, otp, password } = req.body;
 
     if (!email) {
-      return res.status(400).json({ success: false, message: 'Email is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with this email' });
+      return res
+        .status(404)
+        .json({ success: false, message: "No account found with this email" });
     }
 
     // Check if user is active
-    if (user.status !== 'active') {
-      return res.status(403).json({ success: false, message: 'Your account has been suspended' });
+    if (user.status !== "active") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Your account has been suspended" });
     }
 
     // Login with OTP
     if (otp) {
-      const otpRecord = await OTP.findOne({ email, otp, purpose: 'login' });
+      const otpRecord = await OTP.findOne({ email, otp, purpose: "login" });
       if (!otpRecord) {
-        return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid or expired OTP" });
       }
       await OTP.deleteMany({ email });
     }
@@ -320,10 +364,14 @@ const login = async (req, res) => {
     else if (password) {
       const isMatch = await user.comparePassword(password);
       if (!isMatch) {
-        return res.status(401).json({ success: false, message: 'Invalid password' });
+        return res
+          .status(401)
+          .json({ success: false, message: "Invalid password" });
       }
     } else {
-      return res.status(400).json({ success: false, message: 'OTP or password required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "OTP or password required" });
     }
 
     // Update last login
@@ -334,13 +382,13 @@ const login = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Login successful',
+      message: "Login successful",
       token,
       user: sanitizeUser(user),
     });
   } catch (error) {
-    console.error('Login Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to login' });
+    console.error("Login Error:", error);
+    res.status(500).json({ success: false, message: "Failed to login" });
   }
 };
 
@@ -352,19 +400,30 @@ const resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
 
     if (!email || !otp || !newPassword) {
-      return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required' });
+      return res.status(400).json({
+        success: false,
+        message: "Email, OTP, and new password are required",
+      });
     }
 
     // Verify OTP
-    const otpRecord = await OTP.findOne({ email, otp, purpose: 'reset-password' });
+    const otpRecord = await OTP.findOne({
+      email,
+      otp,
+      purpose: "reset-password",
+    });
     if (!otpRecord) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired OTP" });
     }
 
     // Update password
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
 
     user.password = newPassword;
@@ -375,11 +434,13 @@ const resetPassword = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password reset successfully',
+      message: "Password reset successfully",
     });
   } catch (error) {
-    console.error('Reset Password Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to reset password' });
+    console.error("Reset Password Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to reset password" });
   }
 };
 
@@ -388,16 +449,18 @@ const resetPassword = async (req, res) => {
 // @access  Private
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id)
-      .populate('referredBy', 'name email referralCode');
+    const user = await User.findById(req.user._id).populate(
+      "referredBy",
+      "name email referralCode",
+    );
 
     res.status(200).json({
       success: true,
       user: sanitizeUser(user),
     });
   } catch (error) {
-    console.error('Get Me Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get user' });
+    console.error("Get Me Error:", error);
+    res.status(500).json({ success: false, message: "Failed to get user" });
   }
 };
 
@@ -407,7 +470,7 @@ const getMe = async (req, res) => {
 const logout = async (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Logged out successfully',
+    message: "Logged out successfully",
   });
 };
 
@@ -419,7 +482,9 @@ const googleAuth = async (req, res) => {
     const { idToken, referralCode } = req.body;
 
     if (!idToken) {
-      return res.status(400).json({ success: false, message: 'Google ID token is required' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Google ID token is required" });
     }
 
     // Verify Google token (accepts Web, Android, iOS client IDs)
@@ -430,15 +495,19 @@ const googleAuth = async (req, res) => {
         audience: googleClientIds, // Accept multiple client IDs
       });
     } catch (error) {
-      console.error('Google token verification failed:', error);
-      return res.status(401).json({ success: false, message: 'Invalid Google token' });
+      console.error("Google token verification failed:", error);
+      return res
+        .status(401)
+        .json({ success: false, message: "Invalid Google token" });
     }
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
 
     if (!email) {
-      return res.status(400).json({ success: false, message: 'Email not provided by Google' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Email not provided by Google" });
     }
 
     // Check if user exists with this googleId or email
@@ -449,15 +518,17 @@ const googleAuth = async (req, res) => {
       // Existing user - update Google info if needed
       if (!user.googleId) {
         user.googleId = googleId;
-        user.authProvider = 'google';
+        user.authProvider = "google";
       }
       if (picture && !user.avatar) {
         user.avatar = picture;
       }
-      
+
       // Check if user is active
-      if (user.status !== 'active') {
-        return res.status(403).json({ success: false, message: 'Your account has been suspended' });
+      if (user.status !== "active") {
+        return res
+          .status(403)
+          .json({ success: false, message: "Your account has been suspended" });
       }
 
       user.lastLogin = new Date();
@@ -476,19 +547,21 @@ const googleAuth = async (req, res) => {
 
       const userData = {
         email,
-        name: name || email.split('@')[0],
+        name: name || email.split("@")[0],
         googleId,
-        authProvider: 'google',
-        avatar: picture || '',
+        authProvider: "google",
+        avatar: picture || "",
         referralCode: userReferralCode,
         isEmailVerified: true,
-        'miningStats.totalCoins': settings.signupBonus || 100,
+        "miningStats.totalCoins": settings.signupBonus || 100,
       };
 
       // Handle referral if code provided
       let referrer = null;
       if (referralCode) {
-        referrer = await User.findOne({ referralCode: referralCode.toUpperCase() });
+        referrer = await User.findOne({
+          referralCode: referralCode.toUpperCase(),
+        });
         if (referrer) {
           userData.referredBy = referrer._id;
         }
@@ -501,47 +574,46 @@ const googleAuth = async (req, res) => {
         const directReward = calculateReferralReward(true, settings);
         referrer.miningStats.totalCoins += directReward;
         referrer.referralStats.totalCount += 1;
-        referrer.referralStats.activeCount += 1;
         referrer.referralStats.totalEarned += directReward;
         referrer.referralStats.directReferrals.push(user._id);
         await referrer.save();
 
         // Add to referrer's REFERRAL WALLET
-        const Wallet = require('../models/Wallet');
+        const Wallet = require("../models/Wallet");
         let referrerWallet = await Wallet.findOne({ user: referrer._id });
         if (!referrerWallet) {
           referrerWallet = await Wallet.create({ user: referrer._id });
         }
         await referrerWallet.addReferralCoins(directReward);
 
-        const Referral = require('../models/Referral');
+        const Referral = require("../models/Referral");
         await Referral.create({
           referrer: referrer._id,
           referred: user._id,
-          type: 'direct',
+          type: "direct",
           coinsEarned: directReward,
         });
 
         // Create transaction for referral bonus
-        const Transaction = require('../models/Transaction');
+        const Transaction = require("../models/Transaction");
         await Transaction.create({
           user: referrer._id,
-          type: 'referral',
+          type: "referral",
           amount: directReward,
           coins: directReward,
-          currency: 'COIN',
-          status: 'completed',
+          currency: "COIN",
+          status: "completed",
           description: `Direct referral bonus from ${name}`,
           metadata: {
-            walletType: 'referral',
+            walletType: "referral",
             referredUserId: user._id,
           },
         });
 
         await Notification.create({
           user: referrer._id,
-          type: 'referral',
-          title: 'New Referral!',
+          type: "referral",
+          title: "New Referral!",
           message: `${name} joined using your referral code. You earned ${directReward} coins in your Referral Wallet!`,
         });
 
@@ -556,30 +628,34 @@ const googleAuth = async (req, res) => {
             await grandReferrer.save();
 
             // Add to grand referrer's REFERRAL WALLET
-            let grandReferrerWallet = await Wallet.findOne({ user: grandReferrer._id });
+            let grandReferrerWallet = await Wallet.findOne({
+              user: grandReferrer._id,
+            });
             if (!grandReferrerWallet) {
-              grandReferrerWallet = await Wallet.create({ user: grandReferrer._id });
+              grandReferrerWallet = await Wallet.create({
+                user: grandReferrer._id,
+              });
             }
             await grandReferrerWallet.addReferralCoins(indirectReward);
 
             await Referral.create({
               referrer: grandReferrer._id,
               referred: user._id,
-              type: 'indirect',
+              type: "indirect",
               coinsEarned: indirectReward,
             });
 
             // Create transaction for indirect referral bonus
             await Transaction.create({
               user: grandReferrer._id,
-              type: 'referral',
+              type: "referral",
               amount: indirectReward,
               coins: indirectReward,
-              currency: 'COIN',
-              status: 'completed',
+              currency: "COIN",
+              status: "completed",
               description: `Indirect referral bonus from ${name}`,
               metadata: {
-                walletType: 'referral',
+                walletType: "referral",
                 referredUserId: user._id,
                 indirect: true,
               },
@@ -587,8 +663,8 @@ const googleAuth = async (req, res) => {
 
             await Notification.create({
               user: grandReferrer._id,
-              type: 'referral',
-              title: 'Indirect Referral Bonus!',
+              type: "referral",
+              title: "Indirect Referral Bonus!",
               message: `Your referral brought a new user. You earned ${indirectReward} coins in your Referral Wallet!`,
             });
           }
@@ -599,7 +675,7 @@ const googleAuth = async (req, res) => {
       try {
         await sendWelcomeEmail(email, name, userReferralCode);
       } catch (emailError) {
-        console.error('Welcome email failed:', emailError);
+        console.error("Welcome email failed:", emailError);
       }
     }
 
@@ -607,14 +683,16 @@ const googleAuth = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: isNewUser ? 'Account created successfully' : 'Login successful',
+      message: isNewUser ? "Account created successfully" : "Login successful",
       isNewUser,
       token,
       user: sanitizeUser(user),
     });
   } catch (error) {
-    console.error('Google Auth Error:', error);
-    res.status(500).json({ success: false, message: 'Google authentication failed' });
+    console.error("Google Auth Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Google authentication failed" });
   }
 };
 

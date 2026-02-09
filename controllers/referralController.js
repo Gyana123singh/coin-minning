@@ -1,7 +1,12 @@
-const User = require('../models/User');
-const Referral = require('../models/Referral');
-const Notification = require('../models/Notification');
-const { isUserActive, parsePagination, sanitizeUser } = require('../utils/helpers');
+const User = require("../models/User");
+const Referral = require("../models/Referral");
+const Notification = require("../models/Notification");
+const Settings = require("../models/Settings");
+const {
+  isUserActive,
+  parsePagination,
+  sanitizeUser,
+} = require("../utils/helpers");
 
 // @desc    Get referral stats and list
 // @route   GET /api/referrals
@@ -15,13 +20,16 @@ const getReferrals = async (req, res) => {
 
     // Build query
     let query = { referrer: req.user._id };
-    if (type && type !== 'all') {
+    if (type && type !== "all") {
       query.type = type;
     }
 
     // Get referrals
     const referrals = await Referral.find(query)
-      .populate('referred', 'name email avatar createdAt miningStats.lastMiningTime')
+      .populate(
+        "referred",
+        "name email avatar createdAt miningStats.lastMiningTime",
+      )
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -31,25 +39,27 @@ const getReferrals = async (req, res) => {
     // Process referrals to add active status
     const processedReferrals = referrals.map((ref) => {
       const isActive = ref.referred ? isUserActive(ref.referred) : false;
-      
+
       // Debug logging
-      console.log('Processing referral:', {
+      console.log("Processing referral:", {
         id: ref._id,
         referredId: ref.referred?._id,
         referredName: ref.referred?.name,
         coinsEarned: ref.coinsEarned,
-        type: ref.type
+        type: ref.type,
       });
-      
+
       return {
         id: ref._id,
-        user: ref.referred ? {
-          id: ref.referred._id,
-          name: ref.referred.name,
-          email: ref.referred.email,
-          avatar: ref.referred.avatar,
-          joinedAt: ref.referred.createdAt,
-        } : null,
+        user: ref.referred
+          ? {
+              id: ref.referred._id,
+              name: ref.referred.name,
+              email: ref.referred.email,
+              avatar: ref.referred.avatar,
+              joinedAt: ref.referred.createdAt,
+            }
+          : null,
         type: ref.type,
         coinsEarned: ref.coinsEarned || 0,
         isActive,
@@ -58,13 +68,31 @@ const getReferrals = async (req, res) => {
     });
 
     // Get counts
-    const directCount = await Referral.countDocuments({ referrer: req.user._id, type: 'direct' });
-    const indirectCount = await Referral.countDocuments({ referrer: req.user._id, type: 'indirect' });
+    const directCount = await Referral.countDocuments({
+      referrer: req.user._id,
+      type: "direct",
+    });
+    const indirectCount = await Referral.countDocuments({
+      referrer: req.user._id,
+      type: "indirect",
+    });
 
     // Calculate active count
-    const allDirectReferrals = await Referral.find({ referrer: req.user._id, type: 'direct' }).populate('referred');
-    const activeCount = allDirectReferrals.filter((ref) => ref.referred && isUserActive(ref.referred)).length;
+    const allDirectReferrals = await Referral.find({
+      referrer: req.user._id,
+      type: "direct",
+    }).populate("referred");
+    const activeCount = allDirectReferrals.filter(
+      (ref) => ref.referred && isUserActive(ref.referred),
+    ).length;
     const inactiveCount = directCount - activeCount;
+
+    const totalEarnedAgg = await Referral.aggregate([
+      { $match: { referrer: req.user._id } },
+      { $group: { _id: null, total: { $sum: "$coinsEarned" } } },
+    ]);
+
+    const totalEarned = totalEarnedAgg[0]?.total || 0;
 
     res.status(200).json({
       success: true,
@@ -76,18 +104,20 @@ const getReferrals = async (req, res) => {
         pages: Math.ceil(total / limit),
       },
       stats: {
-        totalReferrals: user.referralStats?.totalCount || 0,
+        totalReferrals: directCount + indirectCount,
         directReferrals: directCount,
         indirectReferrals: indirectCount,
         activeCount,
         inactiveCount,
-        totalEarned: user.referralStats?.totalEarned || 0,
+        totalEarned: totalEarned,
       },
       referralCode: user.referralCode,
     });
   } catch (error) {
-    console.error('Get Referrals Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get referrals' });
+    console.error("Get Referrals Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get referrals" });
   }
 };
 
@@ -98,7 +128,7 @@ const getShareLink = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
-    const baseUrl = process.env.APP_URL || 'https://miningapp.com';
+    const baseUrl = process.env.APP_URL || "https://miningapp.com";
     const shareLink = `${baseUrl}/signup?ref=${user.referralCode}`;
 
     res.status(200).json({
@@ -108,8 +138,10 @@ const getShareLink = async (req, res) => {
       shareMessage: `Join Mining App and start earning coins! Use my referral code: ${user.referralCode} to get bonus coins. ${shareLink}`,
     });
   } catch (error) {
-    console.error('Get Share Link Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get share link' });
+    console.error("Get Share Link Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get share link" });
   }
 };
 
@@ -123,19 +155,25 @@ const pingInactiveReferrals = async (req, res) => {
     // Check if user can ping (once every 12 hours)
     const lastPing = user.referralStats?.lastPingTime;
     if (lastPing) {
-      const hoursSinceLastPing = (Date.now() - new Date(lastPing)) / (1000 * 60 * 60);
+      const hoursSinceLastPing =
+        (Date.now() - new Date(lastPing)) / (1000 * 60 * 60);
       if (hoursSinceLastPing < 12) {
-        const nextPingTime = new Date(new Date(lastPing).getTime() + 12 * 60 * 60 * 1000);
+        const nextPingTime = new Date(
+          new Date(lastPing).getTime() + 12 * 60 * 60 * 1000,
+        );
         return res.status(429).json({
           success: false,
-          message: 'You can ping inactive referrals once every 12 hours',
+          message: "You can ping inactive referrals once every 12 hours",
           nextPingAvailable: nextPingTime,
         });
       }
     }
 
     // Find inactive direct referrals
-    const directReferrals = await Referral.find({ referrer: req.user._id, type: 'direct' }).populate('referred');
+    const directReferrals = await Referral.find({
+      referrer: req.user._id,
+      type: "direct",
+    }).populate("referred");
     const inactiveUsers = directReferrals
       .filter((ref) => ref.referred && !isUserActive(ref.referred))
       .map((ref) => ref.referred);
@@ -143,7 +181,7 @@ const pingInactiveReferrals = async (req, res) => {
     if (inactiveUsers.length === 0) {
       return res.status(200).json({
         success: true,
-        message: 'All your referrals are active!',
+        message: "All your referrals are active!",
         pingedCount: 0,
       });
     }
@@ -151,8 +189,8 @@ const pingInactiveReferrals = async (req, res) => {
     // Send notifications to inactive users
     const notifications = inactiveUsers.map((inactiveUser) => ({
       user: inactiveUser._id,
-      type: 'reminder',
-      title: 'Your Friend Misses You! 👋',
+      type: "reminder",
+      title: "Your Friend Misses You! 👋",
       message: `${user.name} is wondering where you've been. Start mining again to help each other earn more coins!`,
     }));
 
@@ -169,8 +207,10 @@ const pingInactiveReferrals = async (req, res) => {
       nextPingAvailable: new Date(Date.now() + 12 * 60 * 60 * 1000),
     });
   } catch (error) {
-    console.error('Ping Inactive Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to ping inactive referrals' });
+    console.error("Ping Inactive Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to ping inactive referrals" });
   }
 };
 
@@ -182,7 +222,7 @@ const getReferralEarnings = async (req, res) => {
     const { page, limit, skip } = parsePagination(req.query);
 
     const earnings = await Referral.find({ referrer: req.user._id })
-      .populate('referred', 'name email avatar')
+      .populate("referred", "name email avatar")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -190,20 +230,24 @@ const getReferralEarnings = async (req, res) => {
     const total = await Referral.countDocuments({ referrer: req.user._id });
 
     // Calculate total earnings
-    const totalEarnings = await Referral.aggregate([
+    const totalEarnedAgg = await Referral.aggregate([
       { $match: { referrer: req.user._id } },
-      { $group: { _id: null, total: { $sum: '$coinsEarned' } } },
+      { $group: { _id: null, total: { $sum: "$coinsEarned" } } },
     ]);
+
+    const totalEarned = totalEarnedAgg[0]?.total || 0;
 
     res.status(200).json({
       success: true,
       earnings: earnings.map((e) => ({
         id: e._id,
-        user: e.referred ? {
-          name: e.referred.name,
-          email: e.referred.email,
-          avatar: e.referred.avatar,
-        } : null,
+        user: e.referred
+          ? {
+              name: e.referred.name,
+              email: e.referred.email,
+              avatar: e.referred.avatar,
+            }
+          : null,
         type: e.type,
         coinsEarned: e.coinsEarned,
         date: e.createdAt,
@@ -214,11 +258,13 @@ const getReferralEarnings = async (req, res) => {
         total,
         pages: Math.ceil(total / limit),
       },
-      totalEarnings: totalEarnings[0]?.total || 0,
+      totalEarned: totalEarned,
     });
   } catch (error) {
-    console.error('Get Referral Earnings Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get referral earnings' });
+    console.error("Get Referral Earnings Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to get referral earnings" });
   }
 };
 
@@ -235,7 +281,7 @@ const validateReferralCode = async (req, res) => {
       return res.status(404).json({
         success: false,
         valid: false,
-        message: 'Invalid referral code',
+        message: "Invalid referral code",
       });
     }
 
@@ -247,9 +293,22 @@ const validateReferralCode = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Validate Referral Code Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to validate code' });
+    console.error("Validate Referral Code Error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to validate code" });
   }
+};
+// @route GET /api/referrals/public-settings
+// @access Public
+const getPublicReferralSettings = async (req, res) => {
+  const settings = await Settings.getSettings();
+  res.json({
+    success: true,
+    directReferralBonus: settings.directReferralBonus,
+    indirectReferralBonus: settings.indirectReferralBonus,
+    signupBonus: settings.signupBonus,
+  });
 };
 
 module.exports = {
@@ -258,4 +317,5 @@ module.exports = {
   pingInactiveReferrals,
   getReferralEarnings,
   validateReferralCode,
+  getPublicReferralSettings,
 };
