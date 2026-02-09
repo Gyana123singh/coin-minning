@@ -286,7 +286,7 @@ exports.addCoins = async (req, res) => {
     if (!amount || amount <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a valid amount',
+        message: "Please provide a valid amount",
       });
     }
 
@@ -294,49 +294,48 @@ exports.addCoins = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: "User not found",
       });
     }
 
-    // Update wallet
     let wallet = await Wallet.findOne({ user: user._id });
     if (!wallet) {
-      wallet = await Wallet.create({
-        user: user._id,
-        coinBalance: 0,
-      });
+      wallet = await Wallet.create({ user: user._id });
     }
 
-    wallet.coinBalance += amount;
-    await wallet.save();
+    // ✅ ADD COINS PROPERLY (to purchase wallet)
+    await wallet.addPurchaseCoins(amount);
 
     // Create transaction record
     await Transaction.create({
       user: user._id,
-      type: 'bonus',
+      type: "bonus",
       amount,
-      status: 'completed',
-      description: reason || 'Admin added coins',
+      coins: amount,
+      status: "completed",
+      description: reason || "Admin added coins",
+      metadata: { walletType: "purchase" },
     });
 
     // Notify user
     await Notification.create({
       user: user._id,
-      title: 'Coins Added',
-      message: `${amount} coins have been added to your wallet. ${reason || ''}`,
-      type: 'reward',
+      title: "Coins Added",
+      message: `${amount} coins have been added to your wallet. ${reason || ""}`,
+      type: "reward",
     });
 
     res.status(200).json({
       success: true,
       message: `${amount} coins added successfully`,
-      newBalance: wallet.coinBalance,
+      newBalance: wallet.purchaseBalance,
     });
   } catch (error) {
-    console.error('Add Coins Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Add Coins Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 // @desc    Deduct coins from user
 // @route   POST /api/admin/users/:id/deduct-coins
@@ -348,7 +347,7 @@ exports.deductCoins = async (req, res) => {
     if (!amount || amount <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a valid amount',
+        message: "Please provide a valid amount",
       });
     }
 
@@ -356,48 +355,51 @@ exports.deductCoins = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: "User not found",
       });
     }
 
     const wallet = await Wallet.findOne({ user: user._id });
-    if (!wallet || wallet.coinBalance < amount) {
+    if (!wallet || wallet.availablePurchaseCoins < amount) {
       return res.status(400).json({
         success: false,
-        message: 'Insufficient balance',
+        message: "Insufficient balance",
       });
     }
 
-    wallet.coinBalance -= amount;
-    await wallet.save();
+    // ✅ DEDUCT PROPERLY from purchase wallet
+    await wallet.deductPurchaseCoins(amount);
 
     // Create transaction record
     await Transaction.create({
       user: user._id,
-      type: 'withdrawal',
+      type: "withdrawal",
       amount: -amount,
-      status: 'completed',
-      description: reason || 'Admin deducted coins',
+      coins: -amount,
+      status: "completed",
+      description: reason || "Admin deducted coins",
+      metadata: { walletType: "purchase" },
     });
 
     // Notify user
     await Notification.create({
       user: user._id,
-      title: 'Coins Deducted',
-      message: `${amount} coins have been deducted from your wallet. ${reason || ''}`,
-      type: 'system',
+      title: "Coins Deducted",
+      message: `${amount} coins have been deducted from your wallet. ${reason || ""}`,
+      type: "system",
     });
 
     res.status(200).json({
       success: true,
       message: `${amount} coins deducted successfully`,
-      newBalance: wallet.coinBalance,
+      newBalance: wallet.purchaseBalance,
     });
   } catch (error) {
-    console.error('Deduct Coins Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Deduct Coins Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 // @desc    Get user statistics
 // @route   GET /api/admin/users/stats
