@@ -144,6 +144,14 @@ const getMiningStatus = async (req, res) => {
 
     // Calculate rates for next session
     const rewards = calculateMiningRewards(user, settings);
+    let liveExpectedCoins = currentSession?.expectedCoins || 0;
+
+    if (currentSession && currentSession.status === "active") {
+      const now = new Date();
+      const remainingMs = new Date(currentSession.endTime) - now;
+      const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
+      liveExpectedCoins = currentSession.totalRate * remainingHours;
+    }
 
     res.status(200).json({
       success: true,
@@ -154,7 +162,7 @@ const getMiningStatus = async (req, res) => {
             id: currentSession._id,
             startTime: currentSession.startTime,
             endTime: currentSession.endTime,
-            expectedCoins: currentSession.expectedCoins,
+            expectedCoins: liveExpectedCoins,
             miningRate: currentSession.totalRate,
             status: currentSession.status,
           }
@@ -560,9 +568,14 @@ const boostMining = async (req, res) => {
 
     if (boostType === "speed") {
       // Increase mining rate by 50%
-      session.totalRate = (session.totalRate || 0.25) * 1.5;
-      session.expectedCoins =
-        session.totalRate * (settings.miningCycleDuration || 24);
+      session.totalRate =
+        (session.totalRate || settings.miningRate || 0.25) * 1.5;
+
+      const now = new Date();
+      const remainingMs = new Date(session.endTime) - now;
+      const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
+
+      session.expectedCoins = session.totalRate * remainingHours;
     } else {
       // Reduce remaining time by 4 hours
       const currentEndTime = new Date(session.endTime);
@@ -574,6 +587,11 @@ const boostMining = async (req, res) => {
       const minEndTime = new Date(Date.now() + 10 * 60 * 1000);
       session.endTime = newEndTime > minEndTime ? newEndTime : minEndTime;
       user.miningStats.currentMiningEndTime = session.endTime;
+      const now = new Date();
+      const remainingMs = new Date(session.endTime) - now;
+      const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
+
+      session.expectedCoins = session.totalRate * remainingHours;
     }
 
     await wallet.save();
@@ -651,12 +669,10 @@ const boostMining = async (req, res) => {
     });
   } catch (error) {
     console.error("Boost Mining Error:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Failed to boost mining: " + error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Failed to boost mining: " + error.message,
+    });
   }
 };
 
