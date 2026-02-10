@@ -21,7 +21,7 @@ const kycUploadFields = uploadKYC.fields([
 
 router.get('/status', getKYCStatus);
 router.post('/submit', kycUploadFields, submitKYC);
-router.get('/:id', getKYCDetails);
+router.get('getKYCDetails/:id', getKYCDetails);
 router.put('/resubmit', kycUploadFields, resubmitKYC);
 
 module.exports = router;
