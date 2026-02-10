@@ -13,6 +13,7 @@ const {
   submitUpiTransaction,
   getMyWallet,
   getMyTransactions,
+  createUpiPaymentLink,
 } = require("../controllers/coinController");
 const { protect } = require("../middleware/auth");
 const { upload } = require("../middleware/upload");
@@ -38,5 +39,6 @@ router.post("/transfer", transferCoins);
 router.post("/submit-transaction", submitUpiTransaction);
 router.get("/me/wallet", getMyWallet);
 router.get("/me/transactions", getMyTransactions);
+router.post("/create-payment-link", createUpiPaymentLink);
 
 module.exports = router;

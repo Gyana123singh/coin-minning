@@ -690,6 +690,73 @@ const getMyTransactions = async (req, res) => {
   }
 };
 
+// @route POST /api/coins/create-payment-link
+// @access Private
+const createUpiPaymentLink = async (req, res) => {
+  try {
+    const { amountUSD } = req.body;
+
+    if (!amountUSD || amountUSD <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid amount",
+      });
+    }
+
+    const settings = await Settings.getSettings();
+
+    const rate = settings.coinPricePerDollar || 10; // $1 = 10 CM
+    const coins = amountUSD * rate;
+
+    // Convert USD to INR if needed (example: 1 USD = 83 INR)
+    const usdToInr = settings.usdToInrRate || 83;
+    const amountINR = Math.round(amountUSD * usdToInr * 100) / 100;
+
+    // Create transaction first
+    const tx = await Transaction.create({
+      user: req.user._id,
+      type: "purchase",
+      amount: amountUSD,
+      coins: coins,
+      currency: "USD",
+      status: "pending",
+      paymentMethod: "upi",
+      description: `Coin purchase $${amountUSD} (${coins} CM)`,
+      metadata: {
+        amountINR,
+        rate,
+      },
+    });
+
+    // Your UPI details (from settings or env)
+    const upiId = settings.paymentUpiId || "payments@miningapp";
+    const merchantName = settings.paymentMerchantName || "Mining App";
+
+    // UPI Deep Link
+    const upiLink = `upi://pay?pa=${encodeURIComponent(
+      upiId,
+    )}&pn=${encodeURIComponent(merchantName)}&am=${amountINR}&cu=INR&tn=${encodeURIComponent(
+      "TX-" + tx._id,
+    )}`;
+
+    res.json({
+      success: true,
+      paymentLink: upiLink,
+      coins,
+      amountUSD,
+      amountINR,
+      transactionId: tx._id,
+      message: "UPI payment link created",
+    });
+  } catch (error) {
+    console.error("Create UPI Link Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create payment link",
+    });
+  }
+};
+
 module.exports = {
   getCoinPackages,
   getCoinRate,
@@ -703,4 +770,5 @@ module.exports = {
   submitUpiTransaction,
   getMyWallet,
   getMyTransactions,
+  createUpiPaymentLink,
 };
