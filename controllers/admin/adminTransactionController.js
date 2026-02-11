@@ -723,11 +723,10 @@ exports.submitPaymentProof = async (req, res) => {
   }
 };
 
-// POST /api/admin/crypto-networks
 // POST /api/admin/transactions/crypto-networks
 exports.createCryptoNetwork = async (req, res) => {
   try {
-    const { network } = req.body;
+    const { network } = req.body; // "TRC20" or "ERC20"
 
     if (!network) {
       return res.status(400).json({
@@ -736,14 +735,28 @@ exports.createCryptoNetwork = async (req, res) => {
       });
     }
 
-    const newNetwork = await CryptoNetwork.create({ network });
+    const exists = await CryptoNetwork.findOne({ name: network });
+    if (exists) {
+      return res.status(400).json({
+        success: false,
+        message: "Network already exists",
+      });
+    }
+
+    const newNetwork = await CryptoNetwork.create({
+      name: network, // e.g. "TRC20"
+      network: network === "TRC20" ? "TRON" : "ETHEREUM",
+      symbol: "USDT",
+      walletAddress: "TEMP_ADDRESS", // later you can edit this from admin UI
+      isActive: true,
+    });
 
     res.json({ success: true, network: newNetwork });
   } catch (error) {
     console.error("Create Crypto Network Error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to create crypto network",
+      message: error.message || "Failed to create crypto network",
     });
   }
 };
