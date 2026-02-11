@@ -724,10 +724,21 @@ exports.submitPaymentProof = async (req, res) => {
 };
 
 // POST /api/admin/crypto-networks
+// POST /api/admin/transactions/crypto-networks
 exports.createCryptoNetwork = async (req, res) => {
   try {
-    const network = await CryptoNetwork.create(req.body);
-    res.json({ success: true, network });
+    const { network } = req.body;
+
+    if (!network) {
+      return res.status(400).json({
+        success: false,
+        message: "Network is required",
+      });
+    }
+
+    const newNetwork = await CryptoNetwork.create({ network });
+
+    res.json({ success: true, network: newNetwork });
   } catch (error) {
     console.error("Create Crypto Network Error:", error);
     res.status(500).json({
