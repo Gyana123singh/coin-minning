@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { protectAdmin, checkPermission } = require("../../middleware/adminAuth");
+const { protectAdmin } = require("../../middleware/adminAuth");
 const {
   createCryptoNetwork,
   getCryptoNetworks,
