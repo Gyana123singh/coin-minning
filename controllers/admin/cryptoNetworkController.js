@@ -5,13 +5,16 @@ const Notification = require("../../models/Notification");
 // Create network (TRC20 / ERC20)
 exports.createCryptoNetwork = async (req, res) => {
   try {
-    const { name, symbol, network, walletAddress, qrCodeUrl } = req.body;
+    const { name, symbol, network, walletAddress } = req.body;
 
-    if (!name || !network) {
+    if (!name || !network || !walletAddress) {
       return res
         .status(400)
         .json({ success: false, message: "Missing fields" });
     }
+
+    // If QR uploaded, multer + cloudinary gives us req.file.path
+    const qrCodeUrl = req.file ? req.file.path : null;
 
     const created = await CryptoNetwork.create({
       name,
@@ -147,4 +150,3 @@ exports.rejectCryptoDeposit = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protectAdmin } = require("../../middleware/adminAuth");
+const { upload } = require("../../middleware/upload");
 const {
   createCryptoNetwork,
   getCryptoNetworks,
@@ -13,7 +14,7 @@ const {
 router.use(protectAdmin);
 
 // routes/admin/cryptoNetworks.js
-router.post("/crypto-networks", createCryptoNetwork);
+router.post("/crypto-networks", upload.single("qrCode"), createCryptoNetwork);
 router.get("/crypto-networks", getCryptoNetworks);
 router.put("/crypto-networks/:id", updateCryptoNetwork);
 router.delete("/crypto-networks/:id", deleteCryptoNetwork);
