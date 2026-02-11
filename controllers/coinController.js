@@ -4,6 +4,7 @@ const Transaction = require("../models/Transaction");
 const CoinPackage = require("../models/CoinPackage");
 const Notification = require("../models/Notification");
 const Settings = require("../models/Settings");
+const CryptoNetwork = require("../models/CryptoNetwork");
 const { parsePagination } = require("../utils/helpers");
 // routes: GET /api/coins/crypto-networks
 const CryptoNetwork = require("../models/CryptoNetwork");
@@ -774,6 +775,7 @@ const getCryptoNetworks = async (req, res) => {
   }
 };
 
+// User submits crypto deposit (TX hash)
 const createCryptoDeposit = async (req, res) => {
   try {
     const { networkId, amountUSD, txHash } = req.body;
@@ -784,38 +786,46 @@ const createCryptoDeposit = async (req, res) => {
         .json({ success: false, message: "Missing fields" });
     }
 
+    const network = await CryptoNetwork.findById(networkId);
+    if (!network || !network.isActive) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid network" });
+    }
+
     const settings = await Settings.getSettings();
     const rate = settings.coinPricePerDollar || 10;
-    const coins = amountUSD * rate;
+    const coins = Number(amountUSD) * rate;
 
     const tx = await Transaction.create({
       user: req.user._id,
       type: "purchase",
-      amount: amountUSD,
+      amount: Number(amountUSD),
       coins,
       currency: "USD",
       status: "pending",
       paymentMethod: "crypto",
-      description: `Crypto deposit $${amountUSD}`,
+      description: `Crypto deposit via ${network.name}`,
+      paymentDetails: {
+        cryptoAddress: network.walletAddress,
+        cryptoNetwork: network.name,
+      },
       metadata: {
-        cryptoNetworkId: networkId,
-        txHash,
-        amountCrypto: amountUSD,
         walletType: "purchase",
+        cryptoNetworkId: network._id,
+        txHash,
+        amountCrypto: Number(amountUSD),
       },
     });
 
     res.json({
       success: true,
-      message: "Deposit submitted. Waiting for admin verification.",
+      message: "Deposit submitted. Waiting for admin approval.",
       transaction: tx,
     });
-  } catch (error) {
-    console.error("Create Crypto Deposit Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create crypto deposit",
-    });
+  } catch (err) {
+    console.error("Create Crypto Deposit Error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
