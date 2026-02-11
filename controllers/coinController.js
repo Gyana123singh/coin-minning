@@ -6,8 +6,7 @@ const Notification = require("../models/Notification");
 const Settings = require("../models/Settings");
 const CryptoNetwork = require("../models/CryptoNetwork");
 const { parsePagination } = require("../utils/helpers");
-// routes: GET /api/coins/crypto-networks
-const CryptoNetwork = require("../models/CryptoNetwork");
+
 
 // @desc    Get available coin packages
 // @route   GET /api/coins/packages
