@@ -11,6 +11,7 @@ const {
   updateCryptoNetwork,
   getAllCryptoNetworks,
   approveCryptoDeposit,
+  rejectCryptoDeposit,
 } = require("../../controllers/admin/adminTransactionController");
 
 router.use(protectAdmin);
@@ -45,4 +46,6 @@ router.get("/crypto-networks", getAllCryptoNetworks);
 
 // PUT /api/admin/transactions/:id/approve-crypto
 router.put("/transactions/:id/approve-crypto", approveCryptoDeposit);
+router.put("/transactions/:id/reject-crypto", rejectCryptoDeposit);
+
 module.exports = router;

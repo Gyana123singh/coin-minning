@@ -816,3 +816,50 @@ exports.approveCryptoDeposit = async (req, res) => {
     });
   }
 };
+
+// PUT /api/admin/transactions/:id/reject-crypto
+exports.rejectCryptoDeposit = async (req, res) => {
+  try {
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({
+        success: false,
+        message: "Rejection reason is required",
+      });
+    }
+
+    const tx = await Transaction.findById(req.params.id);
+
+    if (!tx || tx.status !== "pending" || tx.paymentMethod !== "crypto") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid transaction" });
+    }
+
+    tx.status = "failed";
+    tx.failureReason = reason;
+    tx.processedAt = new Date();
+    tx.processedBy = req.admin._id;
+    await tx.save();
+
+    // Notify user
+    await Notification.create({
+      user: tx.user,
+      title: "Crypto Deposit Rejected",
+      message: `Your crypto deposit was rejected. Reason: ${reason}`,
+      type: "transaction",
+    });
+
+    res.json({
+      success: true,
+      message: "Crypto deposit rejected",
+    });
+  } catch (error) {
+    console.error("Reject Crypto Deposit Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to reject crypto deposit",
+    });
+  }
+};
