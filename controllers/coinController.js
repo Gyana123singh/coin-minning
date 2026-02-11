@@ -5,6 +5,8 @@ const CoinPackage = require("../models/CoinPackage");
 const Notification = require("../models/Notification");
 const Settings = require("../models/Settings");
 const { parsePagination } = require("../utils/helpers");
+// routes: GET /api/coins/crypto-networks
+const CryptoNetwork = require("../models/CryptoNetwork");
 
 // @desc    Get available coin packages
 // @route   GET /api/coins/packages
@@ -757,6 +759,66 @@ const createUpiPaymentLink = async (req, res) => {
   }
 };
 
+// routes: GET /api/coins/crypto-networks
+
+const getCryptoNetworks = async (req, res) => {
+  try {
+    const networks = await CryptoNetwork.find({ isActive: true });
+    res.json({ success: true, networks });
+  } catch (error) {
+    console.error("Get Crypto Networks Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch crypto networks",
+    });
+  }
+};
+
+const createCryptoDeposit = async (req, res) => {
+  try {
+    const { networkId, amountUSD, txHash } = req.body;
+
+    if (!networkId || !amountUSD || !txHash) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing fields" });
+    }
+
+    const settings = await Settings.getSettings();
+    const rate = settings.coinPricePerDollar || 10;
+    const coins = amountUSD * rate;
+
+    const tx = await Transaction.create({
+      user: req.user._id,
+      type: "purchase",
+      amount: amountUSD,
+      coins,
+      currency: "USD",
+      status: "pending",
+      paymentMethod: "crypto",
+      description: `Crypto deposit $${amountUSD}`,
+      metadata: {
+        cryptoNetworkId: networkId,
+        txHash,
+        amountCrypto: amountUSD,
+        walletType: "purchase",
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Deposit submitted. Waiting for admin verification.",
+      transaction: tx,
+    });
+  } catch (error) {
+    console.error("Create Crypto Deposit Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create crypto deposit",
+    });
+  }
+};
+
 module.exports = {
   getCoinPackages,
   getCoinRate,
@@ -771,4 +833,6 @@ module.exports = {
   getMyWallet,
   getMyTransactions,
   createUpiPaymentLink,
+  getCryptoNetworks,
+  createCryptoDeposit,
 };

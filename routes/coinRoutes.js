@@ -14,6 +14,8 @@ const {
   getMyWallet,
   getMyTransactions,
   createUpiPaymentLink,
+  getCryptoNetworks,
+  createCryptoDeposit,
 } = require("../controllers/coinController");
 const { protect } = require("../middleware/auth");
 const { upload } = require("../middleware/upload");
@@ -40,5 +42,11 @@ router.post("/submit-transaction", submitUpiTransaction);
 router.get("/me/wallet", getMyWallet);
 router.get("/me/transactions", getMyTransactions);
 router.post("/create-payment-link", createUpiPaymentLink);
+
+// GET /api/coins/crypto-networks
+router.get("/crypto-networks", getCryptoNetworks);
+
+// POST /api/coins/crypto-deposit
+router.post("/crypto-deposit", createCryptoDeposit);
 
 module.exports = router;
