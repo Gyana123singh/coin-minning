@@ -189,6 +189,9 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "OK", message: "Mining App API is running" });
 });
 
+app.get("/", (req, res) => {
+  res.json({ status: "OK", message: "Mining App API is running" });
+});
 // Error handler
 app.use(errorHandler);
 
