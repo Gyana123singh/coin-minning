@@ -433,17 +433,15 @@ const googleAuth = async (req, res) => {
         });
       }
 
-      if (!user.googleId) {
-        user.googleId = googleId;
-        user.authProvider = "google";
-      }
+      user.googleId = googleId;
+      user.authProvider = "google";
+      user.lastLogin = new Date();
+      user.isEmailVerified = true;
 
       if (picture && !user.avatar) {
         user.avatar = picture;
       }
 
-      user.lastLogin = new Date();
-      user.isEmailVerified = true;
       await user.save();
     }
 
@@ -468,14 +466,14 @@ const googleAuth = async (req, res) => {
         avatar: picture || "",
         referralCode: userReferralCode,
         isEmailVerified: true,
-        "miningStats.totalCoins": settings.signupBonus || 100,
+        miningStats: {
+          totalCoins: settings.signupBonus || 100,
+        },
       };
 
       let referrer = null;
 
-      // ===============================
-      // 🔥 SELF REFERRAL BLOCK (FIXED)
-      // ===============================
+      // 🔥 SELF REFERRAL BLOCK
       if (referralCode && referralCode.trim() !== "") {
         const cleanCode = referralCode.trim().toUpperCase();
 
@@ -488,7 +486,7 @@ const googleAuth = async (req, res) => {
           });
         }
 
-        // ❌ Block self referral by email
+        // Block self referral
         if (referrer.email.toLowerCase() === email.toLowerCase()) {
           return res.status(400).json({
             success: false,
@@ -512,22 +510,8 @@ const googleAuth = async (req, res) => {
         referrer.referralStats.totalCount += 1;
         referrer.referralStats.totalEarned += directReward;
         referrer.referralStats.directReferrals.push(user._id);
+
         await referrer.save();
-
-        const Wallet = require("../models/Wallet");
-        let referrerWallet = await Wallet.findOne({ user: referrer._id });
-        if (!referrerWallet) {
-          referrerWallet = await Wallet.create({ user: referrer._id });
-        }
-        await referrerWallet.addReferralCoins(directReward);
-
-        const Referral = require("../models/Referral");
-        await Referral.create({
-          referrer: referrer._id,
-          referred: user._id,
-          type: "direct",
-          coinsEarned: directReward,
-        });
 
         await Notification.create({
           user: referrer._id,
@@ -537,6 +521,7 @@ const googleAuth = async (req, res) => {
         });
       }
 
+      // Send welcome email
       try {
         await sendWelcomeEmail(email, name, userReferralCode);
       } catch (err) {
@@ -546,7 +531,7 @@ const googleAuth = async (req, res) => {
 
     const token = generateJWT(user._id);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: isNewUser ? "Account created successfully" : "Login successful",
       isNewUser,
@@ -555,7 +540,7 @@ const googleAuth = async (req, res) => {
     });
   } catch (error) {
     console.error("Google Auth Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Google authentication failed",
     });
