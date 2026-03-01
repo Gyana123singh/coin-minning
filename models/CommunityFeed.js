@@ -20,7 +20,9 @@ const FeedSchema = new mongoose.Schema(
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     comments: [CommentSchema],
 
-    isHidden: { type: Boolean, default: false }, // admin can hide post
+    shares: { type: Number, default: 0 }, // ✅ Added share count
+
+    isHidden: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
