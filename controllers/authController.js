@@ -138,30 +138,32 @@ const signup = async (req, res) => {
       });
     }
 
-    // Check if OTP was verified
+    // Check verified OTP
     const otpRecord = await OTP.findOne({
       email,
       purpose: "signup",
       verified: true,
     });
+
     if (!otpRecord) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please verify your email first" });
+      return res.status(400).json({
+        success: false,
+        message: "Please verify your email first",
+      });
     }
 
-    // Check if user already exists
+    // Check if already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email already registered" });
+      return res.status(400).json({
+        success: false,
+        message: "Email already registered",
+      });
     }
 
-    // Get settings for bonus amounts
     const settings = await Settings.getSettings();
 
-    // Create user with unique referral code
+    // Generate unique referral code for new user
     let userReferralCode = generateReferralCode();
     while (await User.findOne({ referralCode: userReferralCode })) {
       userReferralCode = generateReferralCode();
@@ -176,15 +178,16 @@ const signup = async (req, res) => {
       "miningStats.totalCoins": settings.signupBonus || 100,
     };
 
-    // Handle referral if code provided
     let referrer = null;
 
+    // =========================
+    // 🔥 SELF REFERRAL BLOCK
+    // =========================
     if (referralCode && referralCode.trim() !== "") {
       const cleanCode = referralCode.trim().toUpperCase();
 
       referrer = await User.findOne({ referralCode: cleanCode });
 
-      // ❌ Invalid / fake code
       if (!referrer) {
         return res.status(400).json({
           success: false,
@@ -192,7 +195,7 @@ const signup = async (req, res) => {
         });
       }
 
-      // ❌ Block self-referral (same email)
+      // ❌ Block self referral (same email)
       if (referrer.email.toLowerCase() === email.toLowerCase()) {
         return res.status(400).json({
           success: false,
@@ -200,131 +203,16 @@ const signup = async (req, res) => {
         });
       }
 
-      // ✅ Valid referral from another user
       userData.referredBy = referrer._id;
     }
 
+    // Create user AFTER validation
     const user = await User.create(userData);
 
-    // Process referral rewards
-    if (referrer) {
-      // Direct referral reward
-      const directReward = calculateReferralReward(true, settings);
-      referrer.miningStats.totalCoins += directReward;
-      referrer.referralStats.totalCount += 1;
-      referrer.referralStats.totalEarned += directReward;
-      referrer.referralStats.directReferrals.push(user._id);
-      await referrer.save();
-
-      // Add to referrer's REFERRAL WALLET
-      const Wallet = require("../models/Wallet");
-      let referrerWallet = await Wallet.findOne({ user: referrer._id });
-      if (!referrerWallet) {
-        referrerWallet = await Wallet.create({ user: referrer._id });
-      }
-      await referrerWallet.addReferralCoins(directReward);
-
-      // Create referral record
-      const Referral = require("../models/Referral");
-      await Referral.create({
-        referrer: referrer._id,
-        referred: user._id,
-        type: "direct",
-        coinsEarned: directReward,
-      });
-
-      // Create transaction for referral bonus
-      const Transaction = require("../models/Transaction");
-      await Transaction.create({
-        user: referrer._id,
-        type: "referral",
-        amount: directReward,
-        coins: directReward,
-        currency: "COIN",
-        status: "completed",
-        description: `Direct referral bonus from ${user.name}`,
-        metadata: {
-          walletType: "referral",
-          referredUserId: user._id,
-        },
-      });
-
-      // Notify referrer
-      await Notification.create({
-        user: referrer._id,
-        type: "referral",
-        title: "New Referral!",
-        message: `${name} joined using your referral code. You earned ${directReward} coins in your Referral Wallet!`,
-      });
-
-      // If referrer was also referred (indirect referral chain)
-      if (referrer.referredBy) {
-        const grandReferrer = await User.findById(referrer.referredBy);
-        if (grandReferrer) {
-          const indirectReward = calculateReferralReward(false, settings);
-          grandReferrer.miningStats.totalCoins += indirectReward;
-          grandReferrer.referralStats.totalEarned += indirectReward;
-          grandReferrer.referralStats.indirectReferrals.push(user._id);
-          await grandReferrer.save();
-
-          // Add to grand referrer's REFERRAL WALLET
-          let grandReferrerWallet = await Wallet.findOne({
-            user: grandReferrer._id,
-          });
-          if (!grandReferrerWallet) {
-            grandReferrerWallet = await Wallet.create({
-              user: grandReferrer._id,
-            });
-          }
-          await grandReferrerWallet.addReferralCoins(indirectReward);
-
-          // Create indirect referral record
-          await Referral.create({
-            referrer: grandReferrer._id,
-            referred: user._id,
-            type: "indirect",
-            coinsEarned: indirectReward,
-          });
-
-          // Create transaction for indirect referral bonus
-          await Transaction.create({
-            user: grandReferrer._id,
-            type: "referral",
-            amount: indirectReward,
-            coins: indirectReward,
-            currency: "COIN",
-            status: "completed",
-            description: `Indirect referral bonus from ${user.name}`,
-            metadata: {
-              walletType: "referral",
-              referredUserId: user._id,
-              indirect: true,
-            },
-          });
-
-          // Notify grand referrer
-          await Notification.create({
-            user: grandReferrer._id,
-            type: "referral",
-            title: "Indirect Referral Bonus!",
-            message: `Your referral brought a new user. You earned ${indirectReward} coins in your Referral Wallet!`,
-          });
-        }
-      }
-    }
-
-    // Delete used OTP
+    // Delete OTP
     await OTP.deleteMany({ email });
 
-    // Generate token
     const token = generateJWT(user._id);
-
-    // Send welcome email
-    try {
-      await sendWelcomeEmail(email, name, userReferralCode);
-    } catch (emailError) {
-      console.error("Welcome email failed:", emailError);
-    }
 
     res.status(201).json({
       success: true,
@@ -334,9 +222,10 @@ const signup = async (req, res) => {
     });
   } catch (error) {
     console.error("Signup Error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to create account" });
+    res.status(500).json({
+      success: false,
+      message: "Failed to create account",
+    });
   }
 };
 
@@ -499,60 +388,69 @@ const googleAuth = async (req, res) => {
     const { idToken, referralCode } = req.body;
 
     if (!idToken) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Google ID token is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Google ID token is required",
+      });
     }
 
-    // Verify Google token (accepts Web, Android, iOS client IDs)
+    // Verify Google token
     let ticket;
     try {
       ticket = await googleClient.verifyIdToken({
         idToken,
-        audience: googleClientIds, // Accept multiple client IDs
+        audience: googleClientIds,
       });
     } catch (error) {
       console.error("Google token verification failed:", error);
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid Google token" });
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Google token",
+      });
     }
 
     const payload = ticket.getPayload();
     const { sub: googleId, email, name, picture } = payload;
 
     if (!email) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Email not provided by Google" });
+      return res.status(400).json({
+        success: false,
+        message: "Email not provided by Google",
+      });
     }
 
-    // Check if user exists with this googleId or email
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
     let isNewUser = false;
 
+    // ===============================
+    // EXISTING USER LOGIN
+    // ===============================
     if (user) {
-      // Existing user - update Google info if needed
+      if (user.status !== "active") {
+        return res.status(403).json({
+          success: false,
+          message: "Your account has been suspended",
+        });
+      }
+
       if (!user.googleId) {
         user.googleId = googleId;
         user.authProvider = "google";
       }
+
       if (picture && !user.avatar) {
         user.avatar = picture;
-      }
-
-      // Check if user is active
-      if (user.status !== "active") {
-        return res
-          .status(403)
-          .json({ success: false, message: "Your account has been suspended" });
       }
 
       user.lastLogin = new Date();
       user.isEmailVerified = true;
       await user.save();
-    } else {
-      // New user - create account
+    }
+
+    // ===============================
+    // NEW USER SIGNUP
+    // ===============================
+    else {
       isNewUser = true;
       const settings = await Settings.getSettings();
 
@@ -573,15 +471,16 @@ const googleAuth = async (req, res) => {
         "miningStats.totalCoins": settings.signupBonus || 100,
       };
 
-      // Handle referral if code provided (ONLY for new users)
       let referrer = null;
 
+      // ===============================
+      // 🔥 SELF REFERRAL BLOCK (FIXED)
+      // ===============================
       if (referralCode && referralCode.trim() !== "") {
         const cleanCode = referralCode.trim().toUpperCase();
 
         referrer = await User.findOne({ referralCode: cleanCode });
 
-        // ❌ Invalid / fake code
         if (!referrer) {
           return res.status(400).json({
             success: false,
@@ -589,7 +488,7 @@ const googleAuth = async (req, res) => {
           });
         }
 
-        // ❌ Block self-referral (same email)
+        // ❌ Block self referral by email
         if (referrer.email.toLowerCase() === email.toLowerCase()) {
           return res.status(400).json({
             success: false,
@@ -597,22 +496,24 @@ const googleAuth = async (req, res) => {
           });
         }
 
-        // ✅ Valid referral from another user
         userData.referredBy = referrer._id;
       }
 
+      // Create user AFTER validation
       user = await User.create(userData);
 
-      // Process referral rewards for new user
+      // ===============================
+      // PROCESS REFERRAL REWARD
+      // ===============================
       if (referrer) {
         const directReward = calculateReferralReward(true, settings);
+
         referrer.miningStats.totalCoins += directReward;
         referrer.referralStats.totalCount += 1;
         referrer.referralStats.totalEarned += directReward;
         referrer.referralStats.directReferrals.push(user._id);
         await referrer.save();
 
-        // Add to referrer's REFERRAL WALLET
         const Wallet = require("../models/Wallet");
         let referrerWallet = await Wallet.findOne({ user: referrer._id });
         if (!referrerWallet) {
@@ -628,88 +529,18 @@ const googleAuth = async (req, res) => {
           coinsEarned: directReward,
         });
 
-        // Create transaction for referral bonus
-        const Transaction = require("../models/Transaction");
-        await Transaction.create({
-          user: referrer._id,
-          type: "referral",
-          amount: directReward,
-          coins: directReward,
-          currency: "COIN",
-          status: "completed",
-          description: `Direct referral bonus from ${name}`,
-          metadata: {
-            walletType: "referral",
-            referredUserId: user._id,
-          },
-        });
-
         await Notification.create({
           user: referrer._id,
           type: "referral",
           title: "New Referral!",
-          message: `${name} joined using your referral code. You earned ${directReward} coins in your Referral Wallet!`,
+          message: `${user.name} joined using your referral code. You earned ${directReward} coins!`,
         });
-
-        // Indirect referral chain
-        if (referrer.referredBy) {
-          const grandReferrer = await User.findById(referrer.referredBy);
-          if (grandReferrer) {
-            const indirectReward = calculateReferralReward(false, settings);
-            grandReferrer.miningStats.totalCoins += indirectReward;
-            grandReferrer.referralStats.totalEarned += indirectReward;
-            grandReferrer.referralStats.indirectReferrals.push(user._id);
-            await grandReferrer.save();
-
-            // Add to grand referrer's REFERRAL WALLET
-            let grandReferrerWallet = await Wallet.findOne({
-              user: grandReferrer._id,
-            });
-            if (!grandReferrerWallet) {
-              grandReferrerWallet = await Wallet.create({
-                user: grandReferrer._id,
-              });
-            }
-            await grandReferrerWallet.addReferralCoins(indirectReward);
-
-            await Referral.create({
-              referrer: grandReferrer._id,
-              referred: user._id,
-              type: "indirect",
-              coinsEarned: indirectReward,
-            });
-
-            // Create transaction for indirect referral bonus
-            await Transaction.create({
-              user: grandReferrer._id,
-              type: "referral",
-              amount: indirectReward,
-              coins: indirectReward,
-              currency: "COIN",
-              status: "completed",
-              description: `Indirect referral bonus from ${name}`,
-              metadata: {
-                walletType: "referral",
-                referredUserId: user._id,
-                indirect: true,
-              },
-            });
-
-            await Notification.create({
-              user: grandReferrer._id,
-              type: "referral",
-              title: "Indirect Referral Bonus!",
-              message: `Your referral brought a new user. You earned ${indirectReward} coins in your Referral Wallet!`,
-            });
-          }
-        }
       }
 
-      // Send welcome email for new users
       try {
         await sendWelcomeEmail(email, name, userReferralCode);
-      } catch (emailError) {
-        console.error("Welcome email failed:", emailError);
+      } catch (err) {
+        console.error("Welcome email failed:", err);
       }
     }
 
@@ -724,9 +555,10 @@ const googleAuth = async (req, res) => {
     });
   } catch (error) {
     console.error("Google Auth Error:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Google authentication failed" });
+    res.status(500).json({
+      success: false,
+      message: "Google authentication failed",
+    });
   }
 };
 
