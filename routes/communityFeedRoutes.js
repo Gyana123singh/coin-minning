@@ -10,7 +10,7 @@ router.use(protect);
 router.get("/public", feedController.getPublicFeed);
 
 // PROTECTED (login required)
-router.post("/:id/like", feedController.toggleLikeFeedPost);
-router.post("/:id/comment", feedController.addFeedComment);
+router.post("/:id/like", protect, feedController.toggleLikeFeedPost);
+router.post("/:id/comment", protect, feedController.addFeedComment);
 
 module.exports = router;
