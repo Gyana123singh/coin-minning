@@ -4,8 +4,6 @@ require('dotenv').config();
 mongoose.set('autoIndex', false);
 
 mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   autoIndex: false,
 }).then(async () => {
   console.log('Connected to MongoDB\n');

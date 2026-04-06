@@ -11,7 +11,7 @@ const INDIRECT_BONUS = 20;
 async function fixReferralCoins() {
   try {
     mongoose.set('autoIndex', false);
-    await mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true, autoIndex: false });
+    await mongoose.connect(process.env.MONGO_URI, { autoIndex: false });
     console.log('Connected to MongoDB');
 
     // Find all referrals with coinsEarned = 0

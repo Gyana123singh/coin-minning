@@ -4,8 +4,6 @@ const mongoose = require('mongoose');
 mongoose.set('autoIndex', false);
 
 mongoose.connect('mongodb+srv://devildecent716:UR0QPGzYtTWuz4JD@cluster0.8agmjlc.mongodb.net/minning-app', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   autoIndex: false,
 })
   .then(async () => {

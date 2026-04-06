@@ -9,7 +9,7 @@ const createSuperAdmin = async () => {
   try {
     // Connect to DB (do not auto-create indexes from scripts)
     mongoose.set('autoIndex', false);
-    await mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true, autoIndex: false });
+    await mongoose.connect(process.env.MONGODB_URI, { autoIndex: false });
     console.log('Connected to MongoDB');
 
     // Check if super admin exists

@@ -7,8 +7,6 @@ mongoose.set('autoIndex', false);
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       // Ensure mongoose doesn't auto-create indexes on model initialization
       autoIndex: false,
     });
