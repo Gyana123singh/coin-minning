@@ -2,46 +2,37 @@ const mongoose = require('mongoose');
 
 mongoose.set('autoIndex', false);
 
-let isConnected = false;
-let connectingPromise = null;
+let globalConnection = global.mongooseConnection;
+
+if (!globalConnection) {
+  globalConnection = {
+    conn: null,
+    promise: null,
+  };
+}
 
 const connectDB = async () => {
-  try {
-    // ✅ If already connected
-    if (isConnected) {
-      console.log('MongoDB: already connected');
-      return mongoose.connection;
-    }
-
-    // ✅ If connection is already in progress
-    if (connectingPromise) {
-      console.log('MongoDB: connection in progress, waiting...');
-      return connectingPromise;
-    }
-
-    // ✅ Create new connection
-    connectingPromise = mongoose.connect(process.env.MONGODB_URI);
-
-    const conn = await connectingPromise;
-
-    isConnected = true;
-    connectingPromise = null;
-
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-
-    // Lifecycle logs
-    mongoose.connection.on('connected', () => console.log('Mongoose: connected'));
-    mongoose.connection.on('disconnected', () => console.log('Mongoose: disconnected'));
-    mongoose.connection.on('reconnected', () => console.log('Mongoose: reconnected'));
-    mongoose.connection.on('error', (err) => console.error('Mongoose error:', err));
-
-    return conn;
-
-  } catch (error) {
-    connectingPromise = null;
-    console.error(`DB Error: ${error.message}`);
-    process.exit(1);
+  if (globalConnection.conn) {
+    console.log("MongoDB: already connected");
+    return globalConnection.conn;
   }
+
+  if (!globalConnection.promise) {
+    console.log("MongoDB: creating new connection...");
+
+    globalConnection.promise = mongoose.connect(process.env.MONGODB_URI)
+      .then((mongooseInstance) => {
+        return mongooseInstance;
+      });
+  }
+
+  globalConnection.conn = await globalConnection.promise;
+
+  console.log("MongoDB Connected:", globalConnection.conn.connection.host);
+
+  return globalConnection.conn;
 };
+
+global.mongooseConnection = globalConnection;
 
 module.exports = connectDB;
