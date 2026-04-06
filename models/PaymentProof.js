@@ -88,4 +88,4 @@ paymentProofSchema.index({ user: 1, status: 1 });
 paymentProofSchema.index({ utr: 1 });
 paymentProofSchema.index({ status: 1, createdAt: -1 });
 
-module.exports = mongoose.model('PaymentProof', paymentProofSchema);
+module.exports = mongoose.models.PaymentProof || mongoose.model('PaymentProof', paymentProofSchema);

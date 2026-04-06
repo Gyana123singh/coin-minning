@@ -125,12 +125,12 @@ const userSchema = new mongoose.Schema({
 });
 
 // Generate referral code before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.referralCode) {
-    this.referralCode = this.name.substring(0, 3).toUpperCase() + 
+    this.referralCode = this.name.substring(0, 3).toUpperCase() +
       Math.random().toString(36).substring(2, 8).toUpperCase();
   }
-  
+
   if (this.isModified('password') && this.password) {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -139,32 +139,32 @@ userSchema.pre('save', async function(next) {
 });
 
 // Sign JWT and return
-userSchema.methods.getSignedJwtToken = function() {
+userSchema.methods.getSignedJwtToken = function () {
   return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE,
   });
 };
 
 // Match user entered password to hashed password in database
-userSchema.methods.matchPassword = async function(enteredPassword) {
+userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Alias for matchPassword (used by controllers)
-userSchema.methods.comparePassword = async function(enteredPassword) {
+userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Calculate total mining speed
-userSchema.methods.getTotalMiningSpeed = function() {
+userSchema.methods.getTotalMiningSpeed = function () {
   return this.baseLevel + this.referralLevel + this.boostLevel;
 };
 
 // Check if user can be pinged (12 hours interval)
-userSchema.methods.canBePinged = function() {
+userSchema.methods.canBePinged = function () {
   if (!this.lastPingedAt) return true;
   const hoursSinceLastPing = (Date.now() - this.lastPingedAt) / (1000 * 60 * 60);
   return hoursSinceLastPing >= 12;
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);

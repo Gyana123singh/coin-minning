@@ -123,4 +123,4 @@ settingsSchema.statics.getSettings = async function () {
   return await this.getAllSettings();
 };
 
-module.exports = mongoose.model("Settings", settingsSchema);
+module.exports = mongoose.models.Settings || mongoose.model("Settings", settingsSchema);

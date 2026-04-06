@@ -33,4 +33,4 @@ otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 // Index for queries
 otpSchema.index({ email: 1, otp: 1 });
 
-module.exports = mongoose.model('OTP', otpSchema);
+module.exports = mongoose.models.OTP || mongoose.model('OTP', otpSchema);
