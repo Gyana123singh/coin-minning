@@ -478,14 +478,14 @@ const boostMining = async (req, res) => {
   dbSession.startTransaction();
 
   try {
-    const { boostType } = req.body; // 'speed', 'duration'
+    const { boostType } = req.body; // 'speed'
 
-    if (!boostType || !["speed", "duration"].includes(boostType)) {
+    if (!boostType || !["speed"].includes(boostType)) {
       await dbSession.abortTransaction();
       await dbSession.endSession();
       return res.status(400).json({
         success: false,
-        message: 'Invalid boost type. Use "speed" or "duration"',
+        message: 'Invalid boost type. Use "speed"',
       });
     }
 
@@ -662,24 +662,11 @@ const boostMining = async (req, res) => {
     
     session.coinsEarned = (session.coinsEarned || 0) + accruedSegment;
 
-    if (boostType === "speed") {
-      session.totalRate = (session.totalRate || settings.miningRate || 0.25) * 1.5;
+    session.totalRate = (session.totalRate || settings.miningRate || 0.25) * 1.5;
 
-      const remainingMs = new Date(session.endTime) - now;
-      const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
-      session.expectedCoins = session.coinsEarned + (session.totalRate * remainingHours);
-    } else {
-      const currentEndTime = new Date(session.endTime);
-      const newEndTime = new Date(currentEndTime.getTime() - 4 * 60 * 60 * 1000);
-      const minEndTime = new Date(now.getTime() + 10 * 60 * 1000); // Guarantees 10 minutes remaining
-
-      session.endTime = newEndTime > minEndTime ? newEndTime : minEndTime;
-      user.miningStats.currentMiningEndTime = session.endTime;
-      
-      const remainingMs = new Date(session.endTime) - now;
-      const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
-      session.expectedCoins = session.coinsEarned + (session.totalRate * remainingHours);
-    }
+    const remainingMs = new Date(session.endTime) - now;
+    const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
+    session.expectedCoins = session.coinsEarned + (session.totalRate * remainingHours);
 
     // 7.1 Update tracking timestamps and release concurrency lock
     session.lastBoostAt = now;
@@ -691,10 +678,7 @@ const boostMining = async (req, res) => {
     await user.save({ session: dbSession });
 
     // 8. Create transaction record with secure random UUID
-    const boostDescription =
-      boostType === "speed"
-        ? "Speed Boost - Mining rate increased by 50%"
-        : "Time Boost - Mining duration reduced by 4 hours";
+    const boostDescription = "Speed Boost - Mining rate increased by 50%";
 
     const transactionId = `BOOST-${crypto.randomUUID()}`;
 
@@ -743,7 +727,7 @@ const boostMining = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Mining boosted! ${boostType === "speed" ? "Rate increased by 50%" : "Time reduced by 4 hours"}`,
+      message: "Mining boosted! Rate increased by 50%",
       newExpectedCoins: session.expectedCoins,
       newEndTime: session.endTime,
       newRate: session.totalRate,
