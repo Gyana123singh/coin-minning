@@ -527,6 +527,26 @@ const boostMining = async (req, res) => {
       });
     }
 
+    // Check if boost is on a 30-minute cooldown
+    if (session.lastBoostAt) {
+      const lastBoost = new Date(session.lastBoostAt);
+      const diffMs = new Date() - lastBoost;
+      const diffMins = diffMs / (1000 * 60);
+
+      if (diffMins < 30) {
+        const remainingSeconds = Math.ceil((30 - diffMins) * 60);
+        const remainingMinutes = Math.floor(remainingSeconds / 60);
+        const secs = remainingSeconds % 60;
+        const timeStr = remainingMinutes > 0 ? `${remainingMinutes}m ${secs}s` : `${secs}s`;
+
+        return res.status(400).json({
+          success: false,
+          message: `Already boosted! Try again after 30 minutes. Remaining time: ${timeStr}.`,
+          cooldownRemaining: remainingSeconds,
+        });
+      }
+    }
+
     const boostCost = settings.boostCost || 0; // Cost in coins
     // Get or create wallet
     let wallet = await Wallet.findOne({ user: user._id });
@@ -592,6 +612,8 @@ const boostMining = async (req, res) => {
 
       session.expectedCoins = session.totalRate * remainingHours;
     }
+
+    session.lastBoostAt = new Date(); // Update last boost timestamp
 
     await wallet.save();
     await session.save();
