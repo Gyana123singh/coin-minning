@@ -47,6 +47,14 @@ const miningSessionSchema = new mongoose.Schema(
       type: Date,
       default: null, // when last boost was applied
     },
+    lastRewardCalcAt: {
+      type: Date,
+      default: null, // when rewards were last accrued
+    },
+    boostLockAt: {
+      type: Date,
+      default: null, // concurrency lock timestamp
+    },
 
     status: {
       type: String,

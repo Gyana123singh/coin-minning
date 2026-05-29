@@ -45,10 +45,11 @@ const startMining = async (req, res) => {
     const cycleDuration = settings.miningCycleDuration || 24; // hours
     const endTime = new Date(Date.now() + cycleDuration * 60 * 60 * 1000);
 
+    const startTime = new Date();
     // Create mining session
     const session = await MiningSession.create({
       user: user._id,
-      startTime: new Date(),
+      startTime,
       endTime,
       baseRate: rewards.baseRate,
       referralBoost: rewards.referralBoostRate,
@@ -56,6 +57,7 @@ const startMining = async (req, res) => {
       totalRate: rewards.totalRate,
       expectedCoins: rewards.totalEarnings,
       status: "active", // Explicitly set status
+      lastRewardCalcAt: startTime,
     });
 
     // Update user mining stats
@@ -548,17 +550,18 @@ const boostMining = async (req, res) => {
     }
 
     // 3. Concurrency Lock check (Race Condition Lock)
+    const now = new Date();
     const lockQuery = {
       _id: activeSession._id,
       status: "active",
       $or: [
-        { lastBoostAt: null },
-        { lastBoostAt: { $lte: new Date(Date.now() - 30 * 60 * 1000) } }
+        { boostLockAt: null },
+        { boostLockAt: { $lte: new Date(Date.now() - 10 * 1000) } } // 10 seconds lock timeout
       ]
     };
     
     const lockUpdate = {
-      $set: { lastBoostAt: new Date() }
+      $set: { boostLockAt: now }
     };
     
     const session = await MiningSession.findOneAndUpdate(lockQuery, lockUpdate, {
@@ -567,30 +570,33 @@ const boostMining = async (req, res) => {
     });
 
     if (!session) {
-      const currentSessionData = await MiningSession.findById(activeSession._id).session(dbSession);
-      const lastBoost = currentSessionData && currentSessionData.lastBoostAt ? new Date(currentSessionData.lastBoostAt) : null;
-      
-      let timeStr = "a few moments";
-      let remainingSeconds = 0;
-      
-      if (lastBoost) {
-        const diffMs = new Date() - lastBoost;
-        const diffMins = diffMs / (1000 * 60);
-        if (diffMins < 30) {
-          remainingSeconds = Math.ceil((30 - diffMins) * 60);
-          const remainingMinutes = Math.floor(remainingSeconds / 60);
-          const secs = remainingSeconds % 60;
-          timeStr = remainingMinutes > 0 ? `${remainingMinutes}m ${secs}s` : `${secs}s`;
-        }
-      }
-      
       await dbSession.abortTransaction();
       await dbSession.endSession();
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
-        message: `Already boosted! Try again after 30 minutes. Remaining time: ${timeStr}.`,
-        cooldownRemaining: remainingSeconds,
+        message: "Another boost operation is currently in progress. Please try again.",
       });
+    }
+
+    // 3.1 Cooldown Check (using lastBoostAt)
+    const lastBoost = session.lastBoostAt ? new Date(session.lastBoostAt) : null;
+    if (lastBoost) {
+      const diffMs = now - lastBoost;
+      const diffMins = diffMs / (1000 * 60);
+      if (diffMins < 30) {
+        const remainingSeconds = Math.ceil((30 - diffMins) * 60);
+        const remainingMinutes = Math.floor(remainingSeconds / 60);
+        const secs = remainingSeconds % 60;
+        const timeStr = remainingMinutes > 0 ? `${remainingMinutes}m ${secs}s` : `${secs}s`;
+        
+        await dbSession.abortTransaction();
+        await dbSession.endSession();
+        return res.status(400).json({
+          success: false,
+          message: `Already boosted! Try again after 30 minutes. Remaining time: ${timeStr}.`,
+          cooldownRemaining: remainingSeconds,
+        });
+      }
     }
 
     const boostCost = settings.boostCost || 0; // Cost in coins
@@ -649,11 +655,10 @@ const boostMining = async (req, res) => {
     user.miningStats.totalCoins = wallet.coinBalance;
 
     // 7. Calculate correct accrued segment and expectedCoins
-    const lastChangeTime = activeSession.lastBoostAt || activeSession.startTime;
-    const now = new Date();
+    const lastChangeTime = session.lastRewardCalcAt || session.startTime;
     const elapsedMs = now - new Date(lastChangeTime);
     const elapsedHours = Math.max(0, elapsedMs / (1000 * 60 * 60));
-    const accruedSegment = activeSession.totalRate * elapsedHours;
+    const accruedSegment = session.totalRate * elapsedHours;
     
     session.coinsEarned = (session.coinsEarned || 0) + accruedSegment;
 
@@ -666,14 +671,20 @@ const boostMining = async (req, res) => {
     } else {
       const currentEndTime = new Date(session.endTime);
       const newEndTime = new Date(currentEndTime.getTime() - 4 * 60 * 60 * 1000);
+      const minEndTime = new Date(now.getTime() + 10 * 60 * 1000); // Guarantees 10 minutes remaining
 
-      session.endTime = newEndTime > now ? newEndTime : now;
+      session.endTime = newEndTime > minEndTime ? newEndTime : minEndTime;
       user.miningStats.currentMiningEndTime = session.endTime;
       
       const remainingMs = new Date(session.endTime) - now;
       const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
       session.expectedCoins = session.coinsEarned + (session.totalRate * remainingHours);
     }
+
+    // 7.1 Update tracking timestamps and release concurrency lock
+    session.lastBoostAt = now;
+    session.lastRewardCalcAt = now;
+    session.boostLockAt = null;
 
     await wallet.save({ session: dbSession });
     await session.save({ session: dbSession });
