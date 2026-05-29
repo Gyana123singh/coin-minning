@@ -63,6 +63,9 @@ const startMining = async (req, res) => {
     // Update user mining stats
     user.miningStats.currentMiningEndTime = endTime;
     user.miningStats.lastMiningTime = new Date();
+    user.miningStats.lastPingedBy = null;
+    user.miningStats.lastPingedByName = "";
+    user.miningStats.lastPingedAt = null;
     user.ownershipProgress.miningSessions += 1;
     await user.save();
 

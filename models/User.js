@@ -75,6 +75,9 @@ const userSchema = new mongoose.Schema({
     streak: { type: Number, default: 0 },
     lastMiningTime: { type: Date, default: null },
     currentMiningEndTime: { type: Date, default: null },
+    lastPingedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    lastPingedByName: { type: String, default: "" },
+    lastPingedAt: { type: Date, default: null },
   },
   // Ownership Progress (nested object for controllers)
   ownershipProgress: {

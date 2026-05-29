@@ -28,7 +28,7 @@ const getReferrals = async (req, res) => {
     const referrals = await Referral.find(query)
       .populate(
         "referred",
-        "name email avatar createdAt miningStats.lastMiningTime",
+        "name email avatar createdAt miningStats.lastMiningTime miningStats.currentMiningEndTime miningStats.totalMined miningStats.lastPingedBy miningStats.lastPingedByName miningStats.lastPingedAt",
       )
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -36,20 +36,29 @@ const getReferrals = async (req, res) => {
 
     const total = await Referral.countDocuments(query);
 
+    const now = new Date();
+    const isMiningNow = (referredUser) => {
+      if (!referredUser || !referredUser.miningStats?.currentMiningEndTime) return false;
+      return new Date(referredUser.miningStats.currentMiningEndTime) > now;
+    };
+
+    const MiningSession = require("../models/MiningSession");
+
     // Process referrals to add active status
-    const processedReferrals = referrals.map((ref) => {
-      const isActive = ref.referred ? isUserActive(ref.referred) : false;
+    const processedReferrals = [];
+    for (const ref of referrals) {
+      const isActive = ref.referred ? isMiningNow(ref.referred) : false;
+      let miningRate = 0;
 
-      // Debug logging
-      console.log("Processing referral:", {
-        id: ref._id,
-        referredId: ref.referred?._id,
-        referredName: ref.referred?.name,
-        coinsEarned: ref.coinsEarned,
-        type: ref.type,
-      });
+      if (isActive && ref.referred) {
+        const activeSession = await MiningSession.findOne({
+          user: ref.referred._id,
+          status: "active",
+        });
+        miningRate = activeSession ? activeSession.totalRate : 0.25;
+      }
 
-      return {
+      processedReferrals.push({
         id: ref._id,
         user: ref.referred
           ? {
@@ -58,14 +67,21 @@ const getReferrals = async (req, res) => {
               email: ref.referred.email,
               avatar: ref.referred.avatar,
               joinedAt: ref.referred.createdAt,
+              miningStats: ref.referred.miningStats,
             }
           : null,
         type: ref.type,
         coinsEarned: ref.coinsEarned || 0,
         isActive,
+        miningRate,
+        totalMined: ref.referred?.miningStats?.totalMined || 0,
+        status: isActive ? "Mining Active" : "Idle",
+        lastPingedBy: ref.referred?.miningStats?.lastPingedBy || null,
+        lastPingedByName: ref.referred?.miningStats?.lastPingedByName || "",
+        lastPingedAt: ref.referred?.miningStats?.lastPingedAt || null,
         createdAt: ref.createdAt,
-      };
-    });
+      });
+    }
 
     // Get counts
     const directCount = await Referral.countDocuments({
@@ -77,14 +93,28 @@ const getReferrals = async (req, res) => {
       type: "indirect",
     });
 
-    // Calculate active count
+    // Calculate active count and real-time coins produced
     const allDirectReferrals = await Referral.find({
       referrer: req.user._id,
       type: "direct",
     }).populate("referred");
-    const activeCount = allDirectReferrals.filter(
-      (ref) => ref.referred && isUserActive(ref.referred),
-    ).length;
+
+    let activeCount = 0;
+    let activeCoinsProduced = 0;
+    let inactiveCoinsProduced = 0;
+
+    allDirectReferrals.forEach((ref) => {
+      if (ref.referred) {
+        const produced = ref.referred.miningStats?.totalMined || 0;
+        if (isMiningNow(ref.referred)) {
+          activeCount++;
+          activeCoinsProduced += produced;
+        } else {
+          inactiveCoinsProduced += produced;
+        }
+      }
+    });
+
     const inactiveCount = directCount - activeCount;
 
     const totalEarnedAgg = await Referral.aggregate([
@@ -109,6 +139,8 @@ const getReferrals = async (req, res) => {
         indirectReferrals: indirectCount,
         activeCount,
         inactiveCount,
+        activeCoinsProduced: parseFloat(activeCoinsProduced.toFixed(2)),
+        inactiveCoinsProduced: parseFloat(inactiveCoinsProduced.toFixed(2)),
         totalEarned: totalEarned,
       },
       referralCode: user.referralCode,
@@ -150,67 +182,91 @@ const getShareLink = async (req, res) => {
 // @access  Private
 const pingInactiveReferrals = async (req, res) => {
   try {
+    const { targetUserId } = req.body;
     const user = await User.findById(req.user._id);
 
-    // Check if user can ping (once every 12 hours)
-    const lastPing = user.referralStats?.lastPingTime;
-    if (lastPing) {
-      const hoursSinceLastPing =
-        (Date.now() - new Date(lastPing)) / (1000 * 60 * 60);
-      if (hoursSinceLastPing < 12) {
-        const nextPingTime = new Date(
-          new Date(lastPing).getTime() + 12 * 60 * 60 * 1000,
-        );
-        return res.status(429).json({
-          success: false,
-          message: "You can ping inactive referrals once every 12 hours",
-          nextPingAvailable: nextPingTime,
-        });
-      }
-    }
-
-    // Find inactive direct referrals
-    const directReferrals = await Referral.find({
-      referrer: req.user._id,
-      type: "direct",
-    }).populate("referred");
-    const inactiveUsers = directReferrals
-      .filter((ref) => ref.referred && !isUserActive(ref.referred))
-      .map((ref) => ref.referred);
-
-    if (inactiveUsers.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: "All your referrals are active!",
-        pingedCount: 0,
+    if (!targetUserId) {
+      return res.status(400).json({
+        success: false,
+        message: "Target user ID is required",
       });
     }
 
-    // Send notifications to inactive users
-    const notifications = inactiveUsers.map((inactiveUser) => ({
-      user: inactiveUser._id,
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // 1. Verify target user is inactive
+    const isMiningActive = targetUser.miningStats?.currentMiningEndTime && new Date(targetUser.miningStats.currentMiningEndTime) > new Date();
+    if (isMiningActive) {
+      return res.status(400).json({
+        success: false,
+        message: `${targetUser.name} is currently actively mining.`,
+      });
+    }
+
+    // 2. Verify requesting user is an ancestor of the target user
+    const isDirectReferrer = targetUser.referredBy && targetUser.referredBy.toString() === req.user._id.toString();
+    const isChainReferrer = targetUser.referralChain && targetUser.referralChain.some(id => id.toString() === req.user._id.toString());
+
+    // Traversal fallback for legacy users
+    let isLegacyReferrer = false;
+    if (!isDirectReferrer && !isChainReferrer) {
+      let current = targetUser;
+      while (current && current.referredBy) {
+        if (current.referredBy.toString() === req.user._id.toString()) {
+          isLegacyReferrer = true;
+          break;
+        }
+        current = await User.findById(current.referredBy);
+      }
+    }
+
+    if (!isDirectReferrer && !isChainReferrer && !isLegacyReferrer) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to ping this user. Pings are restricted to the referral network.",
+      });
+    }
+
+    // 3. Validation Lock: check if anyone has already pinged during this inactive period
+    if (targetUser.miningStats?.lastPingedBy) {
+      const pingedByName = targetUser.miningStats.lastPingedByName || "Another user";
+      return res.status(400).json({
+        success: false,
+        message: `${pingedByName} has already sent a notification to ${targetUser.name}.`,
+      });
+    }
+
+    // 4. Lock and Send Notification
+    targetUser.miningStats.lastPingedBy = req.user._id;
+    targetUser.miningStats.lastPingedByName = user.name;
+    targetUser.miningStats.lastPingedAt = new Date();
+    await targetUser.save();
+
+    // Create Mongoose Notification
+    await Notification.create({
+      user: targetUser._id,
       type: "reminder",
-      title: "Your Friend Misses You! 👋",
-      message: `${user.name} is wondering where you've been. Start mining again to help each other earn more coins!`,
-    }));
-
-    await Notification.insertMany(notifications);
-
-    // Update last ping time
-    user.referralStats.lastPingTime = new Date();
-    await user.save();
+      title: "Start Mining! ⛏️",
+      message: `${user.name} is reminding you to start mining and earn OLR coins!`,
+    });
 
     res.status(200).json({
       success: true,
-      message: `Pinged ${inactiveUsers.length} inactive referral(s)`,
-      pingedCount: inactiveUsers.length,
-      nextPingAvailable: new Date(Date.now() + 12 * 60 * 60 * 1000),
+      message: `Notification successfully sent to ${targetUser.name}.`,
+      lastPingedByName: user.name,
+      lastPingedAt: targetUser.miningStats.lastPingedAt,
     });
   } catch (error) {
     console.error("Ping Inactive Error:", error);
     res
       .status(500)
-      .json({ success: false, message: "Failed to ping inactive referrals" });
+      .json({ success: false, message: "Failed to ping inactive referral" });
   }
 };
 

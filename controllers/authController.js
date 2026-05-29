@@ -202,6 +202,7 @@ const signup = async (req, res) => {
 
       // ✅ Valid referral from another user
       userData.referredBy = referrer._id;
+      userData.referralChain = [referrer._id, ...(referrer.referralChain || [])];
     }
 
     const user = await User.create(userData);
@@ -601,6 +602,7 @@ const googleAuth = async (req, res) => {
 
         // ✅ Valid referral from another user
         userData.referredBy = referrer._id;
+        userData.referralChain = [referrer._id, ...(referrer.referralChain || [])];
       }
 
       user = await User.create(userData);
