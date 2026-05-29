@@ -707,7 +707,7 @@ const createUpiPaymentLink = async (req, res) => {
 
     const settings = await Settings.getSettings();
 
-    const rate = settings.coinPricePerDollar || 10; // $1 = 10 CM
+    const rate = settings.coinPricePerDollar || 10; // $1 = 10 OLR
     const coins = amountUSD * rate;
 
     // Convert USD to INR if needed (example: 1 USD = 83 INR)
@@ -723,7 +723,7 @@ const createUpiPaymentLink = async (req, res) => {
       currency: "USD",
       status: "pending",
       paymentMethod: "upi",
-      description: `Coin purchase $${amountUSD} (${coins} CM)`,
+      description: `Coin purchase $${amountUSD} (${coins} OLR)`,
       metadata: {
         amountINR,
         rate,
