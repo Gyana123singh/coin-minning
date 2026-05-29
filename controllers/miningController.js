@@ -527,8 +527,7 @@ const boostMining = async (req, res) => {
       });
     }
 
-    const boostCost = settings.boostCost || 50; // Cost in coins
-
+    const boostCost = settings.boostCost || 0; // Cost in coins
     // Get or create wallet
     let wallet = await Wallet.findOne({ user: user._id });
     if (!wallet) {
