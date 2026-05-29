@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+const crypto = require("crypto");
 const User = require("../models/User");
 const Wallet = require("../models/Wallet");
 const MiningSession = require("../models/MiningSession");
@@ -470,21 +472,35 @@ const getLeaderboard = async (req, res) => {
 // @route   POST /api/mining/boost
 // @access  Private
 const boostMining = async (req, res) => {
+  const dbSession = await mongoose.startSession();
+  dbSession.startTransaction();
+
   try {
     const { boostType } = req.body; // 'speed', 'duration'
 
     if (!boostType || !["speed", "duration"].includes(boostType)) {
+      await dbSession.abortTransaction();
+      await dbSession.endSession();
       return res.status(400).json({
         success: false,
         message: 'Invalid boost type. Use "speed" or "duration"',
       });
     }
 
-    const user = await User.findById(req.user._id);
     const settings = await Settings.getSettings();
+
+    // 1. Fetch user (using transaction session)
+    const user = await User.findById(req.user._id).session(dbSession);
+    if (!user) {
+      await dbSession.abortTransaction();
+      await dbSession.endSession();
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
     // Check if mining is active (endTime must be in the future)
     if (!user.miningStats?.currentMiningEndTime) {
+      await dbSession.abortTransaction();
+      await dbSession.endSession();
       return res.status(400).json({
         success: false,
         message: "No active mining session to boost. Start mining first.",
@@ -493,6 +509,8 @@ const boostMining = async (req, res) => {
 
     const miningEndTime = new Date(user.miningStats.currentMiningEndTime);
     if (miningEndTime <= new Date()) {
+      await dbSession.abortTransaction();
+      await dbSession.endSession();
       return res.status(400).json({
         success: false,
         message:
@@ -500,155 +518,201 @@ const boostMining = async (req, res) => {
       });
     }
 
-    // Find active session - also check by endTime match
-    let session = await MiningSession.findOne({
+    // 2. Find active session (using transaction session)
+    let activeSession = await MiningSession.findOne({
       user: user._id,
       status: "active",
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).session(dbSession);
 
     // If no active session found, try finding by endTime
-    if (!session) {
-      session = await MiningSession.findOne({
+    if (!activeSession) {
+      activeSession = await MiningSession.findOne({
         user: user._id,
         endTime: { $gt: new Date() },
         status: { $ne: "cancelled" },
-      }).sort({ createdAt: -1 });
+      }).sort({ createdAt: -1 }).session(dbSession);
 
       // Update status to active if found
-      if (session && session.status !== "active") {
-        session.status = "active";
+      if (activeSession && activeSession.status !== "active") {
+        activeSession.status = "active";
       }
     }
 
-    if (!session) {
+    if (!activeSession) {
+      await dbSession.abortTransaction();
+      await dbSession.endSession();
       return res.status(400).json({
         success: false,
         message: "Mining session not found. Please restart mining.",
       });
     }
 
-    // Check if boost is on a 30-minute cooldown
-    if (session.lastBoostAt) {
-      const lastBoost = new Date(session.lastBoostAt);
-      const diffMs = new Date() - lastBoost;
-      const diffMins = diffMs / (1000 * 60);
+    // 3. Concurrency Lock check (Race Condition Lock)
+    const lockQuery = {
+      _id: activeSession._id,
+      status: "active",
+      $or: [
+        { lastBoostAt: null },
+        { lastBoostAt: { $lte: new Date(Date.now() - 30 * 60 * 1000) } }
+      ]
+    };
+    
+    const lockUpdate = {
+      $set: { lastBoostAt: new Date() }
+    };
+    
+    const session = await MiningSession.findOneAndUpdate(lockQuery, lockUpdate, {
+      new: true,
+      session: dbSession
+    });
 
-      if (diffMins < 30) {
-        const remainingSeconds = Math.ceil((30 - diffMins) * 60);
-        const remainingMinutes = Math.floor(remainingSeconds / 60);
-        const secs = remainingSeconds % 60;
-        const timeStr = remainingMinutes > 0 ? `${remainingMinutes}m ${secs}s` : `${secs}s`;
-
-        return res.status(400).json({
-          success: false,
-          message: `Already boosted! Try again after 30 minutes. Remaining time: ${timeStr}.`,
-          cooldownRemaining: remainingSeconds,
-        });
+    if (!session) {
+      const currentSessionData = await MiningSession.findById(activeSession._id).session(dbSession);
+      const lastBoost = currentSessionData && currentSessionData.lastBoostAt ? new Date(currentSessionData.lastBoostAt) : null;
+      
+      let timeStr = "a few moments";
+      let remainingSeconds = 0;
+      
+      if (lastBoost) {
+        const diffMs = new Date() - lastBoost;
+        const diffMins = diffMs / (1000 * 60);
+        if (diffMins < 30) {
+          remainingSeconds = Math.ceil((30 - diffMins) * 60);
+          const remainingMinutes = Math.floor(remainingSeconds / 60);
+          const secs = remainingSeconds % 60;
+          timeStr = remainingMinutes > 0 ? `${remainingMinutes}m ${secs}s` : `${secs}s`;
+        }
       }
+      
+      await dbSession.abortTransaction();
+      await dbSession.endSession();
+      return res.status(400).json({
+        success: false,
+        message: `Already boosted! Try again after 30 minutes. Remaining time: ${timeStr}.`,
+        cooldownRemaining: remainingSeconds,
+      });
     }
 
     const boostCost = settings.boostCost || 0; // Cost in coins
-    // Get or create wallet
-    let wallet = await Wallet.findOne({ user: user._id });
+    
+    // 4. Get or create wallet (using transaction session)
+    let wallet = await Wallet.findOne({ user: user._id }).session(dbSession);
     if (!wallet) {
-      wallet = await Wallet.create({
+      wallet = new Wallet({
         user: user._id,
         miningBalance: user.miningStats?.totalCoins || 0,
         totalMined: user.miningStats?.totalMined || 0,
       });
     }
 
-    // Check wallet balance (mining wallet first, then purchase wallet)
-    const totalAvailable =
-      (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0);
+    // 5. Total available check including referralBalance
+    const miningBal = wallet.miningBalance || 0;
+    const referralBal = wallet.referralBalance || 0;
+    const purchaseBal = wallet.purchaseBalance || 0;
+    const totalAvailable = miningBal + referralBal + purchaseBal;
+
     if (totalAvailable < boostCost) {
+      await dbSession.abortTransaction();
+      await dbSession.endSession();
       return res.status(400).json({
         success: false,
         message: `Insufficient coins. You need ${boostCost} coins to boost. Available: ${totalAvailable.toFixed(2)}`,
       });
     }
 
-    // Deduct coins from wallet (prefer mining wallet, then purchase wallet)
+    // 6. Deduct coins following preference: mining -> referral -> purchase
     let remainingCost = boostCost;
-    const miningBefore = wallet.miningBalance || 0;
-    const purchaseBefore = wallet.purchaseBalance || 0;
-
-    if (miningBefore >= remainingCost) {
-      wallet.miningBalance = miningBefore - remainingCost;
+    
+    if (wallet.miningBalance >= remainingCost) {
+      wallet.miningBalance -= remainingCost;
+      remainingCost = 0;
     } else {
-      remainingCost -= miningBefore;
+      remainingCost -= wallet.miningBalance;
       wallet.miningBalance = 0;
-      wallet.purchaseBalance = purchaseBefore - remainingCost;
     }
 
-    // Also update user's totalCoins for consistency
-    user.miningStats.totalCoins =
-      (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0);
+    if (remainingCost > 0) {
+      if (wallet.referralBalance >= remainingCost) {
+        wallet.referralBalance -= remainingCost;
+        remainingCost = 0;
+      } else {
+        remainingCost -= wallet.referralBalance;
+        wallet.referralBalance = 0;
+      }
+    }
+
+    if (remainingCost > 0) {
+      wallet.purchaseBalance = Math.max(0, wallet.purchaseBalance - remainingCost);
+    }
+
+    wallet.coinBalance = (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0) + (wallet.referralBalance || 0);
+    user.miningStats.totalCoins = wallet.coinBalance;
+
+    // 7. Calculate correct accrued segment and expectedCoins
+    const lastChangeTime = activeSession.lastBoostAt || activeSession.startTime;
+    const now = new Date();
+    const elapsedMs = now - new Date(lastChangeTime);
+    const elapsedHours = Math.max(0, elapsedMs / (1000 * 60 * 60));
+    const accruedSegment = activeSession.totalRate * elapsedHours;
+    
+    session.coinsEarned = (session.coinsEarned || 0) + accruedSegment;
 
     if (boostType === "speed") {
-      // Increase mining rate by 50%
-      session.totalRate =
-        (session.totalRate || settings.miningRate || 0.25) * 1.5;
+      session.totalRate = (session.totalRate || settings.miningRate || 0.25) * 1.5;
 
-      const now = new Date();
       const remainingMs = new Date(session.endTime) - now;
       const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
-
-      session.expectedCoins = session.totalRate * remainingHours;
+      session.expectedCoins = session.coinsEarned + (session.totalRate * remainingHours);
     } else {
-      // Reduce remaining time by 4 hours
       const currentEndTime = new Date(session.endTime);
-      const newEndTime = new Date(
-        currentEndTime.getTime() - 4 * 60 * 60 * 1000,
-      );
+      const newEndTime = new Date(currentEndTime.getTime() - 4 * 60 * 60 * 1000);
 
-      // Don't let it go below current time + 10 minutes
-      const minEndTime = new Date(Date.now() + 10 * 60 * 1000);
-      session.endTime = newEndTime > minEndTime ? newEndTime : minEndTime;
+      session.endTime = newEndTime > now ? newEndTime : now;
       user.miningStats.currentMiningEndTime = session.endTime;
-      const now = new Date();
+      
       const remainingMs = new Date(session.endTime) - now;
       const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
-
-      session.expectedCoins = session.totalRate * remainingHours;
+      session.expectedCoins = session.coinsEarned + (session.totalRate * remainingHours);
     }
 
-    session.lastBoostAt = new Date(); // Update last boost timestamp
+    await wallet.save({ session: dbSession });
+    await session.save({ session: dbSession });
+    await user.save({ session: dbSession });
 
-    await wallet.save();
-    await session.save();
-    await user.save();
-
-    // Create transaction record for boost purchase
+    // 8. Create transaction record with secure random UUID
     const boostDescription =
       boostType === "speed"
         ? "Speed Boost - Mining rate increased by 50%"
         : "Time Boost - Mining duration reduced by 4 hours";
 
-    await Transaction.create({
+    const transactionId = `BOOST-${crypto.randomUUID()}`;
+
+    await Transaction.create([{
       user: user._id,
       type: "purchase",
       amount: boostCost,
-      coins: -boostCost, // Negative because coins are spent
-      currency: "COIN",
+      coins: -boostCost,
+      currency: "OLR",
       status: "completed",
       paymentMethod: "wallet",
       description: boostDescription,
-      transactionId: `BOOST-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      balanceAfter: (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0),
+      transactionId: transactionId,
+      balanceAfter: wallet.coinBalance,
       processedAt: new Date(),
       metadata: {
         walletType: "auto",
         boostType: boostType,
         sessionId: session._id,
       },
-    });
+    }], { session: dbSession });
+
+    await dbSession.commitTransaction();
+    await dbSession.endSession();
 
     console.log(
-      `Boost applied: ${boostType} for user ${user._id}, cost: ${boostCost}`,
+      `Boost applied: ${boostType} for user ${user._id}, cost: ${boostCost}`
     );
 
-    // Emit wallet update via Socket.io for real-time update
     const io = req.app.get("io");
     const connectedUsers = req.app.get("connectedUsers");
     const socketId = connectedUsers?.get(user._id.toString());
@@ -658,10 +722,7 @@ const boostMining = async (req, res) => {
         miningBalance: wallet.miningBalance || 0,
         purchaseBalance: wallet.purchaseBalance || 0,
         referralBalance: wallet.referralBalance || 0,
-        totalBalance:
-          (wallet.miningBalance || 0) +
-          (wallet.purchaseBalance || 0) +
-          (wallet.referralBalance || 0),
+        totalBalance: wallet.coinBalance,
         lastUpdated: new Date().toISOString(),
         reason: "boost_purchase",
       };
@@ -676,19 +737,17 @@ const boostMining = async (req, res) => {
       newEndTime: session.endTime,
       newRate: session.totalRate,
       coinsSpent: boostCost,
-      remainingCoins:
-        (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0),
+      remainingCoins: wallet.coinBalance,
       wallets: {
         mining: wallet.miningBalance || 0,
         purchase: wallet.purchaseBalance || 0,
         referral: wallet.referralBalance || 0,
-        total:
-          (wallet.miningBalance || 0) +
-          (wallet.purchaseBalance || 0) +
-          (wallet.referralBalance || 0),
+        total: wallet.coinBalance,
       },
     });
   } catch (error) {
+    await dbSession.abortTransaction();
+    await dbSession.endSession();
     console.error("Boost Mining Error:", error);
     res.status(500).json({
       success: false,
