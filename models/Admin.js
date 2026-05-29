@@ -63,7 +63,7 @@ const adminSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-adminSchema.pre('save', async function(next) {
+adminSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
   }
@@ -73,7 +73,7 @@ adminSchema.pre('save', async function(next) {
 });
 
 // Sign JWT token
-adminSchema.methods.getSignedJwtToken = function() {
+adminSchema.methods.getSignedJwtToken = function () {
   return jwt.sign(
     { id: this._id, role: this.role, isAdmin: true },
     process.env.JWT_SECRET,
@@ -82,17 +82,17 @@ adminSchema.methods.getSignedJwtToken = function() {
 };
 
 // Match password
-adminSchema.methods.matchPassword = async function(enteredPassword) {
+adminSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Check if account is locked
-adminSchema.methods.isLocked = function() {
+adminSchema.methods.isLocked = function () {
   return this.lockUntil && this.lockUntil > Date.now();
 };
 
 // Increment login attempts
-adminSchema.methods.incrementLoginAttempts = async function() {
+adminSchema.methods.incrementLoginAttempts = async function () {
   // Reset if lock has expired
   if (this.lockUntil && this.lockUntil < Date.now()) {
     await this.updateOne({
@@ -104,13 +104,13 @@ adminSchema.methods.incrementLoginAttempts = async function() {
 
   // Increment attempts
   const updates = { $inc: { loginAttempts: 1 } };
-  
+
   // Lock account after 5 failed attempts for 2 hours
   if (this.loginAttempts + 1 >= 5) {
     updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 };
   }
-  
+
   await this.updateOne(updates);
 };
 
-module.exports = mongoose.model('Admin', adminSchema);
+module.exports = mongoose.models.Admin || mongoose.model('Admin', adminSchema);

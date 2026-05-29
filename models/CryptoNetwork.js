@@ -12,4 +12,4 @@ const cryptoNetworkSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("CryptoNetwork", cryptoNetworkSchema);
+module.exports = mongoose.models.CryptoNetwork || mongoose.model("CryptoNetwork", cryptoNetworkSchema);

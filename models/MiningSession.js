@@ -62,4 +62,4 @@ const miningSessionSchema = new mongoose.Schema(
 // Index for faster queries
 miningSessionSchema.index({ user: 1, status: 1, createdAt: -1 });
 
-module.exports = mongoose.model("MiningSession", miningSessionSchema);
+module.exports = mongoose.models.MiningSession || mongoose.model("MiningSession", miningSessionSchema);

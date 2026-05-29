@@ -101,7 +101,7 @@ const promoCodeSchema = new mongoose.Schema({
 });
 
 // Check if code is valid
-promoCodeSchema.methods.isValid = function() {
+promoCodeSchema.methods.isValid = function () {
   if (this.status !== 'active') return false;
   const now = new Date();
   if (this.startDate && now < this.startDate) return false;
@@ -111,20 +111,21 @@ promoCodeSchema.methods.isValid = function() {
 };
 
 // Check if user can use this code
-promoCodeSchema.methods.canUserUse = function(userId) {
+promoCodeSchema.methods.canUserUse = function (userId) {
   if (!this.isValid()) return false;
-  
+
   const userUses = this.usedBy.filter(
     u => u.user.toString() === userId.toString()
   ).length;
-  
+
   if (userUses >= this.maxUsesPerUser) return false;
-  
+
   return true;
 };
 
-// Index
-promoCodeSchema.index({ code: 1 });
+// Indexes
+// 'code' field already has unique: true which creates an index.
+// Avoid duplicate index definition by not adding a redundant index on 'code'.
 promoCodeSchema.index({ status: 1, startDate: 1, endDate: 1 });
 
-module.exports = mongoose.model('PromoCode', promoCodeSchema);
+module.exports = mongoose.models.PromoCode || mongoose.model('PromoCode', promoCodeSchema);

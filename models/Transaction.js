@@ -146,4 +146,4 @@ transactionSchema.index({ user: 1, type: 1, createdAt: -1 });
 transactionSchema.index({ status: 1, createdAt: -1 });
 transactionSchema.index({ "metadata.walletType": 1 });
 
-module.exports = mongoose.model("Transaction", transactionSchema);
+module.exports = mongoose.models.Transaction || mongoose.model("Transaction", transactionSchema);

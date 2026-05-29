@@ -19,7 +19,7 @@ const googleClientIds = [
   process.env.GOOGLE_IOS_CLIENT_ID,
 ].filter(Boolean);
 
-const googleClient = new OAuth2Client();
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Generate JWT Token
 const generateJWT = (userId) => {
@@ -505,17 +505,19 @@ const googleAuth = async (req, res) => {
     }
 
     // Verify Google token (accepts Web, Android, iOS client IDs)
+    // Verify Google token
     let ticket;
     try {
       ticket = await googleClient.verifyIdToken({
-        idToken,
-        audience: googleClientIds, // Accept multiple client IDs
+        idToken: idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
       });
     } catch (error) {
       console.error("Google token verification failed:", error);
-      return res
-        .status(401)
-        .json({ success: false, message: "Invalid Google token" });
+      return res.status(401).json({
+        success: false,
+        message: "Invalid Google token",
+      });
     }
 
     const payload = ticket.getPayload();

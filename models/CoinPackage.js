@@ -77,12 +77,12 @@ const coinPackageSchema = new mongoose.Schema({
 });
 
 // Virtual for total coins
-coinPackageSchema.virtual('totalCoins').get(function() {
+coinPackageSchema.virtual('totalCoins').get(function () {
   return this.coins + this.bonusCoins;
 });
 
 // Check if package is available
-coinPackageSchema.methods.isAvailable = function() {
+coinPackageSchema.methods.isAvailable = function () {
   if (!this.isActive) return false;
   const now = new Date();
   if (this.validFrom && now < this.validFrom) return false;
@@ -93,4 +93,4 @@ coinPackageSchema.methods.isAvailable = function() {
 // Index
 coinPackageSchema.index({ isActive: 1, sortOrder: 1 });
 
-module.exports = mongoose.model('CoinPackage', coinPackageSchema);
+module.exports = mongoose.models.CoinPackage || mongoose.model('CoinPackage', coinPackageSchema);

@@ -10,12 +10,13 @@ const INDIRECT_BONUS = 20;
 
 async function fixReferralCoins() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    mongoose.set('autoIndex', false);
+    await mongoose.connect(process.env.MONGO_URI, { autoIndex: false });
     console.log('Connected to MongoDB');
 
     // Find all referrals with coinsEarned = 0
     const referralsToFix = await Referral.find({ coinsEarned: 0 });
-    
+
     console.log(`Found ${referralsToFix.length} referrals with coinsEarned = 0`);
 
     for (const ref of referralsToFix) {
@@ -26,7 +27,7 @@ async function fixReferralCoins() {
     }
 
     console.log('All referrals fixed!');
-    
+
     // Show summary
     const allReferrals = await Referral.find().populate('referred', 'name');
     console.log('\n--- All Referrals ---');

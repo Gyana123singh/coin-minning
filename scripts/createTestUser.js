@@ -10,7 +10,8 @@ const Settings = require('../models/Settings');
 
 const createTestUser = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    mongoose.set('autoIndex', false);
+    await mongoose.connect(process.env.MONGODB_URI, { autoIndex: false });
     console.log('Connected to MongoDB');
 
     // Check if test user exists

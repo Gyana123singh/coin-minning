@@ -66,7 +66,7 @@ const bannerSchema = new mongoose.Schema({
 });
 
 // Check if banner is currently active
-bannerSchema.methods.isCurrentlyActive = function() {
+bannerSchema.methods.isCurrentlyActive = function () {
   if (this.status !== 'active') return false;
   const now = new Date();
   if (this.startDate && now < this.startDate) return false;
@@ -78,4 +78,4 @@ bannerSchema.methods.isCurrentlyActive = function() {
 bannerSchema.index({ status: 1, order: 1 });
 bannerSchema.index({ startDate: 1, endDate: 1 });
 
-module.exports = mongoose.model('Banner', bannerSchema);
+module.exports = mongoose.models.Banner || mongoose.model('Banner', bannerSchema);
