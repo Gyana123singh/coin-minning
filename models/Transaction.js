@@ -30,7 +30,7 @@ const transactionSchema = new mongoose.Schema(
     },
     currency: {
       type: String,
-      enum: ["USD", "INR", "EUR", "COIN"],
+      enum: ["USD", "INR", "EUR", "COIN", "OLR"],
       default: "COIN",
     },
     status: {
