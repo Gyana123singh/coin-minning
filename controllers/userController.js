@@ -23,7 +23,7 @@ const getProfile = async (req, res) => {
     const settings = await Settings.getSettings();
     const totalUsers = await User.countDocuments();
 
-    const ownershipProgress = calculateOwnershipProgress(user);
+    const ownershipProgress = calculateOwnershipProgress(user, settings);
     const userTier = getUserTier(totalUsers);
 
     res.status(200).json({
@@ -220,6 +220,7 @@ const getActivity = async (req, res) => {
 const getStats = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    const settings = await Settings.getSettings();
 
     res.status(200).json({
       success: true,
@@ -229,7 +230,7 @@ const getStats = async (req, res) => {
         totalMined: user.miningStats?.totalMined || 0,
         miningStreak: user.miningStats?.streak || 0,
         referralStats: user.referralStats,
-        ownershipProgress: calculateOwnershipProgress(user),
+        ownershipProgress: calculateOwnershipProgress(user, settings),
         memberSince: user.createdAt,
         lastActive: user.lastLogin,
       },
@@ -538,7 +539,7 @@ const getDashboard = async (req, res) => {
           hasCheckedIn,
           streak: user.checkinStreak || 0,
         },
-        progress: calculateOwnershipProgress(user),
+        progress: calculateOwnershipProgress(user, settings),
         tier: getUserTier(totalUsers),
       },
     });
@@ -550,75 +551,7 @@ const getDashboard = async (req, res) => {
   }
 };
 
-// @desc    Redeem promo code
-// @route   POST /api/users/redeem-code
-// @access  Private
 
-// const redeemPromoCode = async (req, res) => {
-//   try {
-//     const { code } = req.body;
-//     const user = await User.findById(req.user._id);
-
-//     if (!code) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Please enter a code" });
-//     }
-
-//     // This would be connected to a PromoCode model in production
-//     // For now, just simulate some codes
-//     const validCodes = {
-//       WELCOME100: { coins: 100, description: "Welcome bonus" },
-//       BONUS50: { coins: 50, description: "Bonus code" },
-//     };
-
-//     const promo = validCodes[code.toUpperCase()];
-
-//     if (!promo) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Invalid or expired code" });
-//     }
-
-//     // Check if already used (would check against user's usedCodes array)
-//     if (user.usedPromoCodes?.includes(code.toUpperCase())) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Code already used" });
-//     }
-
-//     // Add coins
-//     user.miningStats.totalCoins += promo.coins;
-//     user.usedPromoCodes = user.usedPromoCodes || [];
-//     user.usedPromoCodes.push(code.toUpperCase());
-//     await user.save();
-
-//     // Create transaction
-//     await Transaction.create({
-//       user: req.user._id,
-//       type: "bonus",
-//       amount: promo.coins,
-//       coins: promo.coins,
-//       currency: "COIN",
-//       status: "completed",
-//       description: `Promo code: ${code.toUpperCase()} - ${promo.description}`,
-//     });
-
-//     res.status(200).json({
-//       success: true,
-//       message: `Code redeemed! You received ${promo.coins} coins.`,
-//       coins: promo.coins,
-//       totalCoins: user.miningStats.totalCoins,
-//     });
-//   } catch (error) {
-//     console.error("Redeem Code Error:", error);
-//     res.status(500).json({ success: false, message: "Failed to redeem code" });
-//   }
-// };
-
-// @desc    Redeem promo code
-// @route   POST /api/users/redeem-code
-// @access  Private
 const redeemPromoCode = async (req, res) => {
   try {
     const { code } = req.body;

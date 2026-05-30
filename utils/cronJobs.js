@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Wallet = require('../models/Wallet');
+const Settings = require('../models/Settings');
 const MiningSession = require('../models/MiningSession');
 const Notification = require('../models/Notification');
 const { sendMiningCompleteEmail } = require('./sendEmail');
@@ -118,6 +119,9 @@ const sendInactiveReminders = async () => {
 const updateOwnershipProgress = async () => {
   try {
     const users = await User.find({ status: 'active' });
+    const settings = await Settings.getSettings();
+    const ownershipDaysRequired = settings?.ownershipDaysRequired ?? 30;
+    const miningSessionsRequired = settings?.miningSessionsRequired ?? 20;
 
     for (const user of users) {
       // Calculate days since registration
@@ -127,7 +131,7 @@ const updateOwnershipProgress = async () => {
         user.ownershipProgress.daysActive = daysSinceRegistration;
 
         // Check if user is now eligible for KYC
-        if (daysSinceRegistration >= 30 && user.ownershipProgress.miningSessions >= 20 && !user.ownershipProgress.kycInvited) {
+        if (daysSinceRegistration >= ownershipDaysRequired && user.ownershipProgress.miningSessions >= miningSessionsRequired && !user.ownershipProgress.kycInvited) {
           user.ownershipProgress.kycInvited = true;
 
           // Send KYC invitation notification

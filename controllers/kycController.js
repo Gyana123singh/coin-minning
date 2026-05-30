@@ -1,5 +1,6 @@
 const KYC = require("../models/KYC");
 const User = require("../models/User");
+const Settings = require("../models/Settings");
 const Notification = require("../models/Notification");
 const { calculateOwnershipProgress } = require("../utils/helpers");
 
@@ -9,7 +10,8 @@ const { calculateOwnershipProgress } = require("../utils/helpers");
 const getKYCStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    const ownershipProgress = calculateOwnershipProgress(user);
+    const settings = await Settings.getSettings();
+    const ownershipProgress = calculateOwnershipProgress(user, settings);
 
     // Get existing KYC submission
     const kyc = await KYC.findOne({ user: req.user._id }).sort({
@@ -21,8 +23,8 @@ const getKYCStatus = async (req, res) => {
     const checklist = [
       {
         id: "ownership",
-        title: "Complete ownership information over 30 days",
-        description: "Be an active member for at least 30 days",
+        title: `Complete ownership information over ${ownershipProgress.requirements.daysActive.required} days`,
+        description: `Be an active member for at least ${ownershipProgress.requirements.daysActive.required} days`,
         progress: ownershipProgress.progress.daysActive,
         current: ownershipProgress.requirements.daysActive.current,
         required: ownershipProgress.requirements.daysActive.required,
@@ -30,8 +32,8 @@ const getKYCStatus = async (req, res) => {
       },
       {
         id: "mining",
-        title: "Complete mining for at least 20 sessions",
-        description: "Start and complete 20 mining cycles",
+        title: `Complete mining for at least ${ownershipProgress.requirements.miningSessions.required} sessions`,
+        description: `Start and complete ${ownershipProgress.requirements.miningSessions.required} mining cycles`,
         progress: ownershipProgress.progress.miningSessions,
         current: ownershipProgress.requirements.miningSessions.current,
         required: ownershipProgress.requirements.miningSessions.required,
@@ -78,7 +80,8 @@ const getKYCStatus = async (req, res) => {
 const submitKYC = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    const ownershipProgress = calculateOwnershipProgress(user);
+    const settings = await Settings.getSettings();
+    const ownershipProgress = calculateOwnershipProgress(user, settings);
 
     // Check eligibility
     if (!ownershipProgress.isEligibleForKYC) {
