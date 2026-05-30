@@ -84,8 +84,14 @@ const calculateOwnershipProgress = (user, settings = null) => {
   const miningSessionsRequired = settings?.miningSessionsRequired ?? 20;
 
   const requirements = {
-    daysActive: { current: user.ownershipProgress?.daysActive || 0, required: ownershipDaysRequired },
-    miningSessions: { current: user.ownershipProgress?.miningSessions || 0, required: miningSessionsRequired },
+    daysActive: { 
+      current: Math.min(user.ownershipProgress?.daysActive || 0, ownershipDaysRequired), 
+      required: ownershipDaysRequired 
+    },
+    miningSessions: { 
+      current: Math.min(user.ownershipProgress?.miningSessions || 0, miningSessionsRequired), 
+      required: miningSessionsRequired 
+    },
     kycInvited: { current: user.ownershipProgress?.kycInvited ? 1 : 0, required: 1 },
   };
   
