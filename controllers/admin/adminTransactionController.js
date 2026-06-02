@@ -586,6 +586,7 @@ exports.getPaymentSettings = async (req, res) => {
 
 exports.updatePaymentSettings = async (req, res) => {
   try {
+    console.log("Saving Payment Settings Request Body:", req.body);
     const {
       upiId,
       upiName,
