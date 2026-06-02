@@ -553,16 +553,33 @@ const getPaymentInfo = async (req, res) => {
 // @access  Private
 const submitUpiTransaction = async (req, res) => {
   try {
-    const { transactionId, amount, upiApp } = req.body;
+    const { transactionId, amount, amountINR, upiApp } = req.body;
 
-    if (!transactionId || !amount) {
+    if (!transactionId || (!amount && !amountINR)) {
       return res.status(400).json({
         success: false,
         message: "Transaction ID and amount are required",
       });
     }
 
-    if (amount <= 0) {
+    const settings = await Settings.getSettings();
+    const coinsPerINR = settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1;
+    const usdToInr = settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83;
+    const coinPricePerDollar = settings.coinPricePerDollar || 10;
+
+    let coinsToReceive = 0;
+    let finalUSD = amount || 0;
+    let finalINR = amountINR || 0;
+
+    if (amountINR !== undefined && Number(amountINR) > 0) {
+      finalINR = Number(amountINR);
+      finalUSD = finalINR / usdToInr;
+      coinsToReceive = finalINR * coinsPerINR;
+    } else if (amount !== undefined && Number(amount) > 0) {
+      finalUSD = Number(amount);
+      finalINR = finalUSD * usdToInr;
+      coinsToReceive = finalUSD * coinPricePerDollar;
+    } else {
       return res.status(400).json({
         success: false,
         message: "Amount must be greater than 0",
@@ -581,24 +598,21 @@ const submitUpiTransaction = async (req, res) => {
       });
     }
 
-    const settings = await Settings.getSettings();
-    const coinPricePerDollar = settings.coinPricePerDollar || 10;
-    const coinsToReceive = amount * coinPricePerDollar;
-
     // Create pending transaction for admin to verify
     const transaction = await Transaction.create({
       user: req.user._id,
       type: "purchase",
-      amount: amount,
+      amount: finalUSD,
       coins: coinsToReceive,
       currency: "USD",
       status: "pending",
       paymentMethod: "upi",
-      description: `Coin purchase - $${amount} for ${coinsToReceive} coins`,
+      description: `Coin purchase - ₹${finalINR} ($${finalUSD.toFixed(2)}) for ${coinsToReceive} coins`,
       metadata: {
         upiTransactionId: transactionId,
         upiApp: upiApp || "unknown",
         coinPriceAtPurchase: coinPricePerDollar,
+        amountINR: finalINR,
         submittedAt: new Date(),
       },
     });
@@ -608,7 +622,7 @@ const submitUpiTransaction = async (req, res) => {
       user: req.user._id,
       type: "system",
       title: "Purchase Submitted",
-      message: `Your purchase of ${coinsToReceive} coins for $${amount} is pending verification. Transaction ID: ${transactionId}`,
+      message: `Your purchase of ${coinsToReceive} coins for ₹${finalINR} is pending verification. Transaction ID: ${transactionId}`,
     });
 
     res.status(200).json({
@@ -619,7 +633,8 @@ const submitUpiTransaction = async (req, res) => {
         id: transaction._id,
         transactionId: transaction.transactionId,
         upiTransactionId: transactionId,
-        amount: amount,
+        amount: finalUSD,
+        amountINR: finalINR,
         coins: coinsToReceive,
         status: "pending",
       },
@@ -698,48 +713,57 @@ const getMyTransactions = async (req, res) => {
 // @access Private
 const createUpiPaymentLink = async (req, res) => {
   try {
-    const { amountUSD } = req.body;
-
-    if (!amountUSD || amountUSD <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid amount",
-      });
-    }
+    const { amountUSD, amountINR } = req.body;
 
     const settings = await Settings.getSettings();
-
+    const coinsPerINR = settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1;
+    const usdToInr = settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83;
     const rate = settings.coinPricePerDollar || 10; // $1 = 10 OLR
-    const coins = amountUSD * rate;
 
-    // Convert USD to INR if needed (example: 1 USD = 83 INR)
-    const usdToInr = settings.usdToInrRate || 83;
-    const amountINR = Math.round(amountUSD * usdToInr * 100) / 100;
+    let finalUSD = 0;
+    let finalINR = 0;
+    let coins = 0;
+
+    if (amountINR !== undefined && Number(amountINR) > 0) {
+      finalINR = Number(amountINR);
+      finalUSD = finalINR / usdToInr;
+      coins = finalINR * coinsPerINR;
+    } else if (amountUSD !== undefined && Number(amountUSD) > 0) {
+      finalUSD = Number(amountUSD);
+      finalINR = Math.round(finalUSD * usdToInr * 100) / 100;
+      coins = finalUSD * rate;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid amount provided",
+      });
+    }
 
     // Create transaction first
     const tx = await Transaction.create({
       user: req.user._id,
       type: "purchase",
-      amount: amountUSD,
+      amount: finalUSD,
       coins: coins,
       currency: "USD",
       status: "pending",
       paymentMethod: "upi",
-      description: `Coin purchase $${amountUSD} (${coins} OLR)`,
+      description: `Coin purchase ₹${finalINR} (${coins} CM/OLR)`,
       metadata: {
-        amountINR,
-        rate,
+        amountINR: finalINR,
+        rate: coinsPerINR,
+        usdToInr,
       },
     });
 
     // Your UPI details (from settings or env)
     const upiId = settings.paymentUpiId || "payments@miningapp";
-    const merchantName = settings.paymentMerchantName || "Mining App";
+    const merchantName = settings.upiName || settings.paymentAccountHolderName || "Mining App";
 
     // UPI Deep Link
     const upiLink = `upi://pay?pa=${encodeURIComponent(
       upiId,
-    )}&pn=${encodeURIComponent(merchantName)}&am=${amountINR}&cu=INR&tn=${encodeURIComponent(
+    )}&pn=${encodeURIComponent(merchantName)}&am=${finalINR}&cu=INR&tn=${encodeURIComponent(
       "TX-" + tx._id,
     )}`;
 
@@ -747,8 +771,8 @@ const createUpiPaymentLink = async (req, res) => {
       success: true,
       paymentLink: upiLink,
       coins,
-      amountUSD,
-      amountINR,
+      amountUSD: finalUSD,
+      amountINR: finalINR,
       transactionId: tx._id,
       message: "UPI payment link created",
     });
