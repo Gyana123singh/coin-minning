@@ -5,7 +5,11 @@ const Feed = require("../../models/CommunityFeed");
 // Create post
 exports.createFeedPost = async (req, res) => {
   try {
-    const post = await Feed.create(req.body);
+    const postData = { ...req.body };
+    if (req.file) {
+      postData.imageUrl = req.file.path;
+    }
+    const post = await Feed.create(postData);
     return res.json({ success: true, data: post });
   } catch (error) {
     console.error("createFeedPost error:", error);
@@ -19,7 +23,11 @@ exports.createFeedPost = async (req, res) => {
 // Update post
 exports.updateFeedPost = async (req, res) => {
   try {
-    const post = await Feed.findByIdAndUpdate(req.params.id, req.body, {
+    const postData = { ...req.body };
+    if (req.file) {
+      postData.imageUrl = req.file.path;
+    }
+    const post = await Feed.findByIdAndUpdate(req.params.id, postData, {
       new: true,
     });
 

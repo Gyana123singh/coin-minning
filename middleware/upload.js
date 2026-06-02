@@ -38,7 +38,11 @@ const generalStorage = new CloudinaryStorage({
     } else if (file.fieldname === 'qrCode') {
       folder = 'mining-app/qrcodes';
     } else if (file.fieldname === 'image') {
-      folder = 'mining-app/banners';
+      if (req.originalUrl && req.originalUrl.includes('feed')) {
+        folder = 'mining-app/feed';
+      } else {
+        folder = 'mining-app/banners';
+      }
     }
     return {
       folder,

@@ -24,6 +24,7 @@ const notificationSchema = new mongoose.Schema({
       'system',
       'promotional',
       'reward',
+      'transaction',
     ],
     default: 'system',
   },
