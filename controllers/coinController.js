@@ -536,6 +536,8 @@ const getPaymentInfo = async (req, res) => {
         accountHolderName: settings.paymentAccountHolderName || "",
         coinPricePerDollar: settings.coinPricePerDollar || 10,
         coinValue: settings.coinValue || 0.01,
+        coinsPerINR: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
+        usdToInrRate: settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83,
       },
     });
   } catch (error) {

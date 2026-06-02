@@ -16,6 +16,7 @@ exports.getAllTransactions = async (req, res) => {
       type,
       status,
       search,
+      paymentMethod,
       sortBy = "createdAt",
       sortOrder = "desc",
     } = req.query;
@@ -29,6 +30,10 @@ exports.getAllTransactions = async (req, res) => {
 
     if (status && status !== "all") {
       query.status = status;
+    }
+
+    if (paymentMethod) {
+      query.paymentMethod = paymentMethod;
     }
 
     // Build sort
@@ -568,6 +573,9 @@ exports.getPaymentSettings = async (req, res) => {
         qrCode: settings.paymentUpiQrCode || "",
         minDeposit: settings.minDeposit || 100,
         maxDeposit: settings.maxDeposit || 100000,
+        coinsPerINR: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
+        usdToInrRate: settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83,
+        coinPricePerDollar: settings.coinPricePerDollar !== undefined ? settings.coinPricePerDollar : 10,
       },
     });
   } catch (error) {
@@ -578,7 +586,16 @@ exports.getPaymentSettings = async (req, res) => {
 
 exports.updatePaymentSettings = async (req, res) => {
   try {
-    const { upiId, upiName, qrCode, minDeposit, maxDeposit } = req.body;
+    const {
+      upiId,
+      upiName,
+      qrCode,
+      minDeposit,
+      maxDeposit,
+      coinsPerINR,
+      usdToInrRate,
+      coinPricePerDollar,
+    } = req.body;
 
     if (upiId !== undefined) {
       await Settings.setSetting("paymentUpiId", upiId, "UPI ID for payments");
@@ -605,6 +622,27 @@ exports.updatePaymentSettings = async (req, res) => {
         "maxDeposit",
         maxDeposit,
         "Maximum deposit amount",
+      );
+    }
+    if (coinsPerINR !== undefined) {
+      await Settings.setSetting(
+        "coinsPerINR",
+        Number(coinsPerINR),
+        "Coins per 1 INR (Rupee)",
+      );
+    }
+    if (usdToInrRate !== undefined) {
+      await Settings.setSetting(
+        "usdToInrRate",
+        Number(usdToInrRate),
+        "Exchange rate of USD/USDT to INR",
+      );
+    }
+    if (coinPricePerDollar !== undefined) {
+      await Settings.setSetting(
+        "coinPricePerDollar",
+        Number(coinPricePerDollar),
+        "Exchange rate of Coins per 1 USD/USDT",
       );
     }
 
@@ -674,11 +712,11 @@ exports.submitPaymentProof = async (req, res) => {
     const settings = await Settings.getSettings();
 
     // If coinsToCredit not sent, calculate from settings
-    const rate = settings.coinPricePerDollar || 10; // 1$ = 10 coins
+    const coinsPerINR = settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1;
     const finalCoins =
       coinsToCredit && Number(coinsToCredit) > 0
         ? Number(coinsToCredit)
-        : Number(amount) * rate;
+        : Number(amount) * coinsPerINR;
 
     // Prevent duplicate UTR
     const existing = await PaymentProof.findOne({ utr });
