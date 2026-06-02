@@ -528,16 +528,32 @@ const getPaymentInfo = async (req, res) => {
     res.status(200).json({
       success: true,
       paymentInfo: {
-        upiId: settings.paymentUpiId || "",
-        qrCodeUrl: settings.paymentUpiQrCode || "",
+        upiId: settings.paymentUpiId || settings.upiId || "",
+        qrCodeUrl: settings.paymentUpiQrCode || settings.qrCode || "",
         bankName: settings.paymentBankName || "",
         accountNumber: settings.paymentAccountNumber || "",
         ifscCode: settings.paymentIfscCode || "",
         accountHolderName: settings.paymentAccountHolderName || "",
         coinPricePerDollar: settings.coinPricePerDollar || 10,
         coinValue: settings.coinValue || 0.01,
+        
+        // Coins Per Rupee (INR) - provide all common keys for Flutter app compatibility
         coinsPerINR: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
+        coinsPerInr: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
+        coinsPerRupee: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
+        upiRate: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
+        upiCoinsPerRupee: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
+        coinPricePerINR: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
+        coinPricePerInr: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
+        
+        // USDT/USD to INR Rate - provide all common keys for Flutter app compatibility
         usdToInrRate: settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83,
+        usdToInr: settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83,
+        usdtToInrRate: settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83,
+        usdtToInr: settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83,
+        exchangeRate: settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83,
+        inrRate: settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83,
+        usdtExchangeRate: settings.usdToInrRate !== undefined ? settings.usdToInrRate : 83,
       },
     });
   } catch (error) {

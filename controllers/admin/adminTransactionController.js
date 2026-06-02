@@ -568,9 +568,9 @@ exports.getPaymentSettings = async (req, res) => {
     res.status(200).json({
       success: true,
       settings: {
-        upiId: settings.paymentUpiId || "",
-        upiName: settings.upiName || "",
-        qrCode: settings.paymentUpiQrCode || "",
+        upiId: settings.paymentUpiId || settings.upiId || "",
+        upiName: settings.upiName || settings.upiName || "",
+        qrCode: settings.paymentUpiQrCode || settings.qrCode || "",
         minDeposit: settings.minDeposit || 100,
         maxDeposit: settings.maxDeposit || 100000,
         coinsPerINR: settings.coinsPerINR !== undefined ? settings.coinsPerINR : 1,
