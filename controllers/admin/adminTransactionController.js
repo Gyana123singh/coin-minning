@@ -308,47 +308,103 @@ exports.getAllPaymentProofs = async (req, res) => {
       sortOrder = "desc",
     } = req.query;
 
-    // Build query
-    const query = {};
+    const parsedPage = parseInt(page);
+    const parsedLimit = parseInt(limit);
+
+    // 1. Build queries
+    const proofQuery = {};
+    const txQuery = { type: "purchase", paymentMethod: "upi" };
 
     if (status && status !== "all") {
-      query.status = status;
+      proofQuery.status = status;
+      if (status === "pending") {
+        txQuery.status = { $in: ["pending", "processing"] };
+      } else if (status === "approved") {
+        txQuery.status = "completed";
+      } else if (status === "rejected") {
+        txQuery.status = "failed";
+      }
     }
 
-    // Build sort
-    const sort = {};
-    sort[sortBy] = sortOrder === "asc" ? 1 : -1;
-
-    // Execute query with pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    let proofs = await PaymentProof.find(query)
+    // 2. Fetch both collections
+    const proofs = await PaymentProof.find(proofQuery)
       .populate("user", "name email phone avatar")
-      .populate("coinPackage", "name coins bonusCoins")
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
+      .populate("coinPackage", "name coins bonusCoins");
 
-    // Filter by search if provided
+    const txs = await Transaction.find(txQuery)
+      .populate("user", "name email phone avatar");
+
+    // 3. Unify the structure
+    const formattedProofs = proofs.map((proof) => ({
+      _id: proof._id,
+      user: proof.user,
+      utr: proof.utr || "N/A",
+      amount: proof.amount || 0,
+      coinsToCredit: proof.coinsToCredit || 0,
+      paymentProof: proof.screenshot || "",
+      coinPackage: proof.coinPackage || null,
+      status: proof.status || "pending",
+      rejectionReason: proof.rejectionReason || "",
+      adminNotes: proof.adminNotes || "",
+      createdAt: proof.createdAt,
+      source: "proof",
+    }));
+
+    const formattedTxs = txs.map((tx) => {
+      let mappedStatus = "pending";
+      if (tx.status === "completed") mappedStatus = "approved";
+      else if (tx.status === "failed") mappedStatus = "rejected";
+
+      return {
+        _id: tx._id,
+        user: tx.user,
+        utr: tx.metadata?.upiTransactionId || tx.externalTransactionId || "N/A",
+        amount: tx.metadata?.amountINR || (tx.amount * 83),
+        coinsToCredit: tx.coins || 0,
+        paymentProof: tx.paymentProof || "",
+        coinPackage: null,
+        status: mappedStatus,
+        rejectionReason: tx.failureReason || "",
+        adminNotes: tx.adminNotes || "",
+        createdAt: tx.createdAt,
+        source: "transaction",
+      };
+    });
+
+    // 4. Merge
+    let merged = [...formattedProofs, ...formattedTxs];
+
+    // 5. Apply Search filter
     if (search) {
-      proofs = proofs.filter(
-        (proof) =>
-          proof.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
-          proof.user?.email?.toLowerCase().includes(search.toLowerCase()) ||
-          proof.utr?.toLowerCase().includes(search.toLowerCase()),
-      );
+      const lowerSearch = search.toLowerCase();
+      merged = merged.filter((item) => {
+        const userName = item.user?.name?.toLowerCase() || "";
+        const userEmail = item.user?.email?.toLowerCase() || "";
+        const utr = item.utr?.toLowerCase() || "";
+        return userName.includes(lowerSearch) || userEmail.includes(lowerSearch) || utr.includes(lowerSearch);
+      });
     }
 
-    const total = await PaymentProof.countDocuments(query);
+    // 6. Apply Sort
+    merged.sort((a, b) => {
+      const valA = a[sortBy] ? new Date(a[sortBy]).getTime() : 0;
+      const valB = b[sortBy] ? new Date(b[sortBy]).getTime() : 0;
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    });
+
+    // 7. Paginate in-memory
+    const total = merged.length;
+    const skip = (parsedPage - 1) * parsedLimit;
+    const paginated = merged.slice(skip, skip + parsedLimit);
 
     res.status(200).json({
       success: true,
-      payments: proofs,
+      payments: paginated,
       pagination: {
-        current: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
+        current: parsedPage,
+        pages: Math.ceil(total / parsedLimit),
         total,
-        limit: parseInt(limit),
+        limit: parsedLimit,
       },
     });
   } catch (error) {
@@ -362,26 +418,49 @@ exports.getAllPaymentProofs = async (req, res) => {
 // @access  Private/Admin
 exports.getPaymentStats = async (req, res) => {
   try {
-    const total = await PaymentProof.countDocuments();
-    const pending = await PaymentProof.countDocuments({ status: "pending" });
-    const approved = await PaymentProof.countDocuments({ status: "approved" });
-    const rejected = await PaymentProof.countDocuments({ status: "rejected" });
+    const totalProofs = await PaymentProof.countDocuments();
+    const pendingProofs = await PaymentProof.countDocuments({ status: "pending" });
+    const approvedProofs = await PaymentProof.countDocuments({ status: "approved" });
+    const rejectedProofs = await PaymentProof.countDocuments({ status: "rejected" });
 
-    // Total collected amount
+    const totalTxs = await Transaction.countDocuments({ type: "purchase", paymentMethod: "upi" });
+    const pendingTxs = await Transaction.countDocuments({ type: "purchase", paymentMethod: "upi", status: { $in: ["pending", "processing"] } });
+    const approvedTxs = await Transaction.countDocuments({ type: "purchase", paymentMethod: "upi", status: "completed" });
+    const rejectedTxs = await Transaction.countDocuments({ type: "purchase", paymentMethod: "upi", status: "failed" });
+
+    const total = totalProofs + totalTxs;
+    const pending = pendingProofs + pendingTxs;
+    const approved = approvedProofs + approvedTxs;
+    const rejected = rejectedProofs + rejectedTxs;
+
     const collectedResult = await PaymentProof.aggregate([
       { $match: { status: "approved" } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
-    const totalCollected = collectedResult[0]?.total || 0;
+    const totalCollectedProofs = collectedResult[0]?.total || 0;
 
-    // Today's collections
+    const collectedTxsResult = await Transaction.aggregate([
+      { $match: { type: "purchase", paymentMethod: "upi", status: "completed" } },
+      { $group: { _id: null, total: { $sum: "$metadata.amountINR" } } },
+    ]);
+    const totalCollectedTxs = collectedTxsResult[0]?.total || 0;
+    const totalCollected = totalCollectedProofs + totalCollectedTxs;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
     const todayResult = await PaymentProof.aggregate([
       { $match: { status: "approved", reviewedAt: { $gte: today } } },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
-    const todayCollected = todayResult[0]?.total || 0;
+    const todayCollectedProofs = todayResult[0]?.total || 0;
+
+    const todayTxsResult = await Transaction.aggregate([
+      { $match: { type: "purchase", paymentMethod: "upi", status: "completed", processedAt: { $gte: today } } },
+      { $group: { _id: null, total: { $sum: "$metadata.amountINR" } } },
+    ]);
+    const todayCollectedTxs = todayTxsResult[0]?.total || 0;
+    const todayCollected = todayCollectedProofs + todayCollectedTxs;
 
     res.status(200).json({
       success: true,
@@ -434,12 +513,68 @@ exports.approvePaymentProof = async (req, res) => {
   try {
     const { notes } = req.body;
 
-    const proof = await PaymentProof.findById(req.params.id);
+    let proof = await PaymentProof.findById(req.params.id);
+    let isTransactionModel = false;
+
+    if (!proof) {
+      proof = await Transaction.findById(req.params.id);
+      if (proof) {
+        if (proof.type !== "purchase" || proof.paymentMethod !== "upi") {
+          return res.status(400).json({
+            success: false,
+            message: "This transaction is not a pending UPI purchase",
+          });
+        }
+        isTransactionModel = true;
+      }
+    }
 
     if (!proof) {
       return res.status(404).json({
         success: false,
         message: "Payment proof not found",
+      });
+    }
+
+    if (isTransactionModel) {
+      if (proof.status !== "pending" && proof.status !== "processing") {
+        return res.status(400).json({
+          success: false,
+          message: "Transaction has already been processed",
+        });
+      }
+
+      // Update transaction status
+      proof.status = "completed";
+      proof.processedAt = new Date();
+      proof.processedBy = req.admin._id;
+      if (notes) proof.adminNotes = notes;
+      await proof.save();
+
+      // Credit coins to user's PURCHASE WALLET
+      if (proof.coins > 0) {
+        let wallet = await Wallet.findOne({ user: proof.user });
+        if (!wallet) {
+          wallet = await Wallet.create({ user: proof.user });
+        }
+        await wallet.addPurchaseCoins(proof.coins);
+      }
+
+      // Notify user
+      await Notification.create({
+        user: proof.user,
+        title: "Payment Approved",
+        message: `Your payment for ${proof.coins} coins has been verified. Coins have been credited to your Purchase Wallet.`,
+        type: "transaction",
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Payment approved and coins credited to Purchase Wallet",
+        payment: {
+          _id: proof._id,
+          status: "approved",
+        },
       });
     }
 
@@ -516,12 +651,59 @@ exports.rejectPaymentProof = async (req, res) => {
       });
     }
 
-    const proof = await PaymentProof.findById(req.params.id);
+    let proof = await PaymentProof.findById(req.params.id);
+    let isTransactionModel = false;
+
+    if (!proof) {
+      proof = await Transaction.findById(req.params.id);
+      if (proof) {
+        if (proof.type !== "purchase" || proof.paymentMethod !== "upi") {
+          return res.status(400).json({
+            success: false,
+            message: "This transaction is not a pending UPI purchase",
+          });
+        }
+        isTransactionModel = true;
+      }
+    }
 
     if (!proof) {
       return res.status(404).json({
         success: false,
         message: "Payment proof not found",
+      });
+    }
+
+    if (isTransactionModel) {
+      if (proof.status !== "pending" && proof.status !== "processing") {
+        return res.status(400).json({
+          success: false,
+          message: "Transaction has already been processed",
+        });
+      }
+
+      // Update transaction status
+      proof.status = "failed";
+      proof.failureReason = reason;
+      proof.processedAt = new Date();
+      proof.processedBy = req.admin._id;
+      await proof.save();
+
+      // Notify user
+      await Notification.create({
+        user: proof.user,
+        title: "Payment Rejected",
+        message: `Your payment submission was rejected. Reason: ${reason}`,
+        type: "transaction",
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Payment rejected",
+        payment: {
+          _id: proof._id,
+          status: "rejected",
+        },
       });
     }
 
