@@ -103,7 +103,7 @@ settingsSchema.statics.setSetting = async function (
 ) {
   return await this.findOneAndUpdate(
     { key },
-    { value, description },
+    { $set: { value, description } },
     { upsert: true, new: true },
   );
 };
@@ -113,7 +113,10 @@ settingsSchema.statics.getAllSettings = async function () {
   const settings = await this.find({});
   const result = { ...defaultSettings };
   settings.forEach((s) => {
-    result[s.key] = s.value;
+    // Use hasOwnProperty check to include 0, false, and empty string values
+    if (s.value !== null && s.value !== undefined) {
+      result[s.key] = s.value;
+    }
   });
   return result;
 };
