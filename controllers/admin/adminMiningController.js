@@ -327,17 +327,26 @@ exports.updateMiningSettings = async (req, res) => {
 
       const rewards = calculateMiningRewards(user, updatedSettings);
 
+      const now = new Date();
+      const lastCalcTime = session.lastRewardCalcAt || session.startTime;
+
+      // Accrue coins earned since last calculation at the OLD rate
+      const elapsedSinceLastCalcMs = now - new Date(lastCalcTime);
+      const elapsedSinceLastCalcHours = Math.max(0, elapsedSinceLastCalcMs / (1000 * 60 * 60));
+      const accruedSegment = (session.totalRate || 0) * elapsedSinceLastCalcHours;
+
+      // Update session with new rates
       session.baseRate = rewards.baseRate;
       session.referralBoost = rewards.referralBoostRate;
       session.levelBoost = rewards.levelBoostRate;
       session.totalRate = rewards.totalRate;
+      session.lastRewardCalcAt = now;
 
-      // Recalculate expected coins based on remaining time
-      const now = new Date();
+      // Recalculate expectedCoins: already accrued + remaining time at NEW rate
       const remainingMs = new Date(session.endTime) - now;
       const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
-
-      session.expectedCoins = rewards.totalRate * remainingHours;
+      const alreadyAccrued = (session.coinsEarned || 0) + accruedSegment;
+      session.expectedCoins = alreadyAccrued + (rewards.totalRate * remainingHours);
 
       await session.save();
     }

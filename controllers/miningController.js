@@ -155,9 +155,15 @@ const getMiningStatus = async (req, res) => {
 
     if (currentSession && currentSession.status === "active") {
       const now = new Date();
-      const remainingMs = new Date(currentSession.endTime) - now;
-      const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
-      liveExpectedCoins = currentSession.totalRate * remainingHours;
+      // Calculate elapsed time since session started (counts UP from 0 to full amount)
+      const elapsedMs = now - new Date(currentSession.startTime);
+      const elapsedHours = Math.max(0, elapsedMs / (1000 * 60 * 60));
+      // Coins accumulated so far = elapsed hours × mining rate
+      // This grows from 0 up to expectedCoins over the full cycle duration
+      liveExpectedCoins = Math.min(
+        currentSession.totalRate * elapsedHours,
+        currentSession.expectedCoins  // cap at the session's full expected amount
+      );
     }
 
     res.status(200).json({
