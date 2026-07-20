@@ -749,7 +749,7 @@ const googleAuth = async (req, res) => {
           coinsEarned: directReward,
         });
 
-        // Create transaction for referral bonus
+        // Create transaction for referral
         const Transaction = require("../models/Transaction");
         await Transaction.create({
           user: referrer._id,
