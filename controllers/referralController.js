@@ -160,13 +160,15 @@ const getShareLink = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
-    const shareLink = "https://play.google.com/store/apps/details?id=com.olaroapp.app";
+    const shareLink =
+      process.env.APP_SHARE_LINK ||
+      "https://play.google.com/store/apps/details?id=com.olaroapp.app";
 
     res.status(200).json({
       success: true,
       referralCode: user.referralCode,
       shareLink,
-      shareMessage: `Join Olaro App and start earning coins! Use my referral code: ${user.referralCode} to get bonus coins. ${shareLink}`,
+      shareMessage: `Join Olaro App and start earning coins! Use my referral code: ${user.referralCode} to get bonus coins. Download app: ${shareLink}`,
     });
   } catch (error) {
     console.error("Get Share Link Error:", error);
