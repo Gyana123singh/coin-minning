@@ -153,18 +153,50 @@ const getMiningStatus = async (req, res) => {
     const rewards = calculateMiningRewards(user, settings);
     let liveExpectedCoins = currentSession?.expectedCoins || 0;
 
+    let isBoostActive = false;
+    let boostTimeRemaining = 0;
+    let activeBoostRateBonus = 0;
+
+    if (currentSession && currentSession.boostEndTime) {
+      const boostEnd = new Date(currentSession.boostEndTime);
+      const now = new Date();
+      if (boostEnd > now) {
+        isBoostActive = true;
+        boostTimeRemaining = Math.max(0, Math.ceil((boostEnd - now) / 1000));
+        activeBoostRateBonus = currentSession.boostRateBonus || 0;
+      }
+    }
+
     if (currentSession && currentSession.status === "active") {
       const now = new Date();
       // Calculate elapsed time since session started (counts UP from 0 to full amount)
       const elapsedMs = now - new Date(currentSession.startTime);
       const elapsedHours = Math.max(0, elapsedMs / (1000 * 60 * 60));
-      // Coins accumulated so far = elapsed hours × mining rate
-      // This grows from 0 up to expectedCoins over the full cycle duration
+      
+      let accumulated = currentSession.totalRate * elapsedHours;
+
+      if (currentSession.lastBoostAt && currentSession.boostRateBonus) {
+        const boostStart = new Date(currentSession.lastBoostAt);
+        const boostEnd = currentSession.boostEndTime
+          ? new Date(currentSession.boostEndTime)
+          : new Date(boostStart.getTime() + 30 * 60 * 1000);
+
+        let activeBoostMs = 0;
+        if (now > boostStart) {
+          const boostEffectiveEnd = now < boostEnd ? now : boostEnd;
+          activeBoostMs = boostEffectiveEnd - boostStart;
+        }
+        const activeBoostHours = Math.max(0, activeBoostMs / (1000 * 60 * 60));
+        accumulated += currentSession.boostRateBonus * activeBoostHours;
+      }
+
       liveExpectedCoins = Math.min(
-        currentSession.totalRate * elapsedHours,
-        currentSession.expectedCoins  // cap at the session's full expected amount
+        accumulated,
+        currentSession.expectedCoins
       );
     }
+
+    const currentMiningRate = (currentSession?.totalRate || rewards.totalRate) + activeBoostRateBonus;
 
     res.status(200).json({
       success: true,
@@ -176,10 +208,27 @@ const getMiningStatus = async (req, res) => {
             startTime: currentSession.startTime,
             endTime: currentSession.endTime,
             expectedCoins: liveExpectedCoins,
-            miningRate: currentSession.totalRate,
+            miningRate: currentMiningRate,
+            baseMiningRate: currentSession.totalRate,
+            boostRateBonus: activeBoostRateBonus,
+            boostEndTime: currentSession.boostEndTime,
             status: currentSession.status,
           }
         : null,
+      boostStatus: {
+        isBoostActive,
+        boostTimeRemaining,
+        boostEndTime: currentSession?.boostEndTime || null,
+        boostBonusPercent: settings.boostBonusPercent ?? 50,
+        boostBonusRate: activeBoostRateBonus,
+        boostCost: settings.boostCost ?? 50,
+        boostDurationMinutes: settings.boostDurationMinutes ?? 30,
+      },
+      settings: {
+        ...settings,
+        boostBonusPercent: settings.boostBonusPercent ?? 50,
+        boostDurationMinutes: settings.boostDurationMinutes ?? 30,
+      },
       nextSessionRates: {
         baseRate: rewards.baseRate,
         referralRate: rewards.referralBoostRate,
@@ -663,19 +712,20 @@ const boostMining = async (req, res) => {
     wallet.coinBalance = (wallet.miningBalance || 0) + (wallet.purchaseBalance || 0) + (wallet.referralBalance || 0);
     user.miningStats.totalCoins = wallet.coinBalance;
 
-    // 7. Calculate correct accrued segment and expectedCoins
-    const lastChangeTime = session.lastRewardCalcAt || session.startTime;
-    const elapsedMs = now - new Date(lastChangeTime);
-    const elapsedHours = Math.max(0, elapsedMs / (1000 * 60 * 60));
-    const accruedSegment = session.totalRate * elapsedHours;
-    
-    session.coinsEarned = (session.coinsEarned || 0) + accruedSegment;
+    // 7. Calculate boost bonus from admin settings
+    const boostBonusPercent = settings.boostBonusPercent ?? 50;
+    const boostDurationMinutes = settings.boostDurationMinutes ?? 30;
 
-    session.totalRate = (session.totalRate || settings.miningRate || 0.25) * 1.5;
+    const baseRate = session.baseRate || settings.miningRate || 0.25;
+    const boostRateBonus = baseRate * (boostBonusPercent / 100);
 
-    const remainingMs = new Date(session.endTime) - now;
-    const remainingHours = Math.max(0, remainingMs / (1000 * 60 * 60));
-    session.expectedCoins = session.coinsEarned + (session.totalRate * remainingHours);
+    const boostEndTime = new Date(now.getTime() + boostDurationMinutes * 60 * 1000);
+    const boostBonusCoins = boostRateBonus * (boostDurationMinutes / 60);
+
+    session.boostEndTime = boostEndTime;
+    session.boostRateBonus = boostRateBonus;
+    session.boostPercent = boostBonusPercent;
+    session.expectedCoins = (session.expectedCoins || 0) + boostBonusCoins;
 
     // 7.1 Update tracking timestamps and release concurrency lock
     session.lastBoostAt = now;
@@ -687,7 +737,7 @@ const boostMining = async (req, res) => {
     await user.save({ session: dbSession });
 
     // 8. Create transaction record with secure random UUID
-    const boostDescription = "Speed Boost - Mining rate increased by 50%";
+    const boostDescription = `Speed Boost - Base rate boosted by ${boostBonusPercent}% for ${boostDurationMinutes} mins`;
 
     const transactionId = `BOOST-${crypto.randomUUID()}`;
 
@@ -736,10 +786,14 @@ const boostMining = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Mining boosted! Rate increased by 50%",
+      message: `Mining boosted! +${boostBonusPercent}% speed for ${boostDurationMinutes} mins 🚀`,
+      boostEndTime: session.boostEndTime,
+      boostBonusPercent: boostBonusPercent,
+      boostBonusRate: boostRateBonus,
+      boostDurationMinutes: boostDurationMinutes,
       newExpectedCoins: session.expectedCoins,
       newEndTime: session.endTime,
-      newRate: session.totalRate,
+      newRate: session.totalRate + boostRateBonus,
       coinsSpent: boostCost,
       remainingCoins: wallet.coinBalance,
       wallets: {

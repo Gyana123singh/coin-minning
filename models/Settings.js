@@ -33,6 +33,8 @@ const defaultSettings = {
   miningCycleDuration: 24,
   maxCoinsPerCycle: 200,
   boostCost: 50, // Cost in coins to boost mining
+  boostBonusPercent: 50, // Percentage bonus applied to base rate during boost (50% = 0.5 * baseRate)
+  boostDurationMinutes: 30, // Duration in minutes boost stays active
 
   // Referral Settings
   directReferralBonus: 50,

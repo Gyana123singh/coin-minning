@@ -47,6 +47,14 @@ const miningSessionSchema = new mongoose.Schema(
       type: Date,
       default: null, // when last boost was applied
     },
+    boostEndTime: {
+      type: Date,
+      default: null, // when current 30-minute boost expires
+    },
+    boostRateBonus: {
+      type: Number,
+      default: 0, // rate bonus active during boost window
+    },
     lastRewardCalcAt: {
       type: Date,
       default: null, // when rewards were last accrued
