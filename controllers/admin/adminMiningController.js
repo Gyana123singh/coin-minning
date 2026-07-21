@@ -262,6 +262,8 @@ exports.getMiningSettings = async (req, res) => {
         maxCoinsPerCycle: settings.maxCoinsPerCycle,
         boostCost: settings.boostCost,
         referralBoostPercent: settings.referralBoostPercent,
+        boostBonusPercent: settings.boostBonusPercent ?? 50,
+        boostDurationMinutes: settings.boostDurationMinutes ?? 30,
       },
     });
   } catch (error) {
@@ -281,6 +283,8 @@ exports.updateMiningSettings = async (req, res) => {
       maxCoinsPerCycle,
       boostCost,
       referralBoostPercent,
+      boostBonusPercent,
+      boostDurationMinutes,
     } = req.body;
 
     if (miningRate !== undefined) {
@@ -312,6 +316,20 @@ exports.updateMiningSettings = async (req, res) => {
         "referralBoostPercent",
         referralBoostPercent,
         "Referral boost percentage",
+      );
+    }
+    if (boostBonusPercent !== undefined) {
+      await Settings.setSetting(
+        "boostBonusPercent",
+        boostBonusPercent,
+        "Boost percentage bonus on base rate",
+      );
+    }
+    if (boostDurationMinutes !== undefined) {
+      await Settings.setSetting(
+        "boostDurationMinutes",
+        boostDurationMinutes,
+        "Boost duration in minutes",
       );
     }
 
@@ -361,6 +379,8 @@ exports.updateMiningSettings = async (req, res) => {
         maxCoinsPerCycle: updatedSettings.maxCoinsPerCycle,
         boostCost: updatedSettings.boostCost,
         referralBoostPercent: updatedSettings.referralBoostPercent,
+        boostBonusPercent: updatedSettings.boostBonusPercent,
+        boostDurationMinutes: updatedSettings.boostDurationMinutes,
       },
       updatedActiveSessions: activeSessions.length,
     });
