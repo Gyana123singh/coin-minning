@@ -160,9 +160,11 @@ const getShareLink = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
-    const shareLink =
+    const baseUrl =
       process.env.APP_SHARE_LINK ||
       "https://play.google.com/store/apps/details?id=com.olaroapp.app";
+    const separator = baseUrl.includes("?") ? "&" : "?";
+    const shareLink = `${baseUrl}${separator}referrer=ref_code%3D${user.referralCode}`;
 
     res.status(200).json({
       success: true,
